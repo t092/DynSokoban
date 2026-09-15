@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中國朝代 SOKOBAN</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: #2a2420;
+    color: #eee9df;
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 {
+    margin-top: 40px; font-size: 42px; letter-spacing: 10px;
+    color: #e8ddc9; text-shadow: 0 4px 24px rgba(0,0,0,.6);
+    opacity: 0; animation: fadeDown 1s ease .2s forwards;
+    z-index: 10;
+  }
+  .sub {
+    margin-top: 10px; font-size: 15px; color: #b9a98c; letter-spacing: 6px;
+    opacity: 0; animation: fadeDown 1s ease .5s forwards;
+    z-index: 10;
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #stage {
+    position: relative; flex: 1; width: 100%;
+    max-width: 1200px; overflow: hidden;
+  }
+  .dyn-block {
+    position: absolute; min-width: 76px; height: 56px;
+    padding: 6px 14px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: bold; letter-spacing: 1px;
+    color: #fff; white-space: nowrap;
+    box-shadow: 0 5px 0 rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.45);
+  }
+  #startWrap {
+    position: absolute; top: 52%; left: 50%; z-index: 10;
+    transform: translate(-50%, -50%) scale(.9);
+    opacity: 0; transition: opacity .8s ease, transform .8s ease;
+    pointer-events: none; text-align: center;
+    background: rgba(42, 36, 32, .55);
+    padding: 36px 70px; border-radius: 20px;
+  }
+  #startWrap.show { opacity: 1; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+  #startBtn {
+    display: inline-block; text-decoration: none;
+    background: #9d5945; color: #fff;
+    font-size: 34px; letter-spacing: 12px; font-weight: bold;
+    padding: 22px 70px 22px 82px; border-radius: 14px;
+    box-shadow: 0 6px 0 #6f3d30, 0 14px 34px rgba(0,0,0,.5);
+    transition: transform .15s, box-shadow .15s, background .15s;
+    animation: glow 1.6s ease-in-out infinite alternate;
+  }
+  #startBtn:hover { background: #b06a52; transform: translateY(-2px); }
+  #startBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 #6f3d30; }
+  @keyframes glow {
+    from { box-shadow: 0 6px 0 #6f3d30, 0 0 12px rgba(224,180,106,.25); }
+    to { box-shadow: 0 6px 0 #6f3d30, 0 0 34px rgba(224,180,106,.55); }
+  }
+  #replay {
+    margin-top: 14px; font-size: 13px; color: #8d7f6a; letter-spacing: 2px;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+  }
+  #replay:hover { color: #c9b896; }
+</style>
+</head>
+<body>
+  <h1>中國朝代 SOKOBAN</h1>
+  <div class="sub">朝代順序大挑戰 · 動手排好五千年</div>
+  <div id="stage"></div>
+  <div id="startWrap">
+    <a id="startBtn" href="dynasty-push-game.html">開始遊戲</a>
+    <div style="text-align:center"><button id="replay" onclick="playIntro()">↻ 再播一次開場</button></div>
+  </div>
+
+<script>
+const DYNASTIES = [
+  ['夏', '#9d5945'], ['商', '#6c4e46'],
+  ['西周', '#b07b4d'], ['東周', '#8d6a4a'],
+  ['春秋', '#5b718b'], ['戰國', '#9b493d'],
+  ['秦', '#303a3b'], ['西漢', '#8d4b4b'],
+  ['新', '#6f6258'], ['東漢', '#8d4b4b'],
+  ['三國', '#617b78'], ['西晉', '#536c6a'],
+  ['東晉', '#617b78'], ['五胡十六國', '#77644f'],
+  ['南北朝', '#617b78'], ['隋', '#a8784b'],
+  ['唐', '#a34e3f'], ['五代十國', '#62645d'],
+  ['遼', '#7a6a8a'], ['北宋', '#5b718b'],
+  ['西夏', '#7d8471'], ['金', '#8a6d3b'],
+  ['南宋', '#6d8297'], ['元', '#80644c'],
+  ['明', '#9b493d'], ['清', '#334e50'],
+  ['中華民國', '#4a6b8a'],
+];
+
+const stage = document.getElementById('stage');
+const startWrap = document.getElementById('startWrap');
+
+// 固定種子亂數：每次載入排列不同（開場本來就不要排好）
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function playIntro() {
+  stage.innerHTML = '';
+  startWrap.classList.remove('show');
+  const W = stage.clientWidth, H = stage.clientHeight;
+
+  // 網格打散：把舞台切成格子，每格放一塊，避免重疊太嚴重
+  const cols = 9, rows = 3;
+  const cells = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) cells.push({ r, c });
+  const picks = shuffle(cells);
+
+  const order = shuffle(DYNASTIES);
+  let maxDelay = 0;
+
+  order.forEach(([name, color], i) => {
+    const el = document.createElement('div');
+    el.className = 'dyn-block';
+    el.textContent = name;
+    el.style.background = color;
+
+    const cell = picks[i];
+    const cellW = (W - 40) / cols, cellH = (H - 30) / rows;
+    stage.appendChild(el);
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    const fx = 20 + cell.c * cellW + Math.random() * Math.max(cellW - bw - 6, 0);
+    const fy = 10 + cell.r * cellH + Math.random() * Math.max(cellH - bh - 6, 0);
+    const tilt = (Math.random() - 0.5) * 10;
+
+    el.style.left = fx + 'px';
+    el.style.top = fy + 'px';
+
+    // 起點：畫面左下方之外 + 大幅旋轉
+    const delay = 150 + i * 55;
+    maxDelay = Math.max(maxDelay, delay);
+    el.animate(
+      [
+        { transform: `translate(${-fx - 200}px, ${H - fy + 160}px) rotate(${-540 - Math.random() * 360}deg)`, opacity: 0 },
+        { opacity: 1, offset: 0.25 },
+        { transform: `translate(0, 0) rotate(${tilt}deg)`, opacity: 1 }
+      ],
+      { duration: 950, delay, easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'backwards' }
+    );
+  });
+
+  // 全部飛入後，浮現開始按鈕
+  setTimeout(() => startWrap.classList.add('show'), maxDelay + 1000);
+}
+
+playIntro();
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1600" viewBox="0 0 2400 1600">
+  <rect width="2400" height="1600" fill="#eee9df"/>
+  <path d="M0 250H2400M0 1320H2400" stroke="#d6cfc1" stroke-width="2"/>
+  <path d="M150 210H2250" stroke="#202a2b" stroke-width="5"/>
+  <path d="M150 210v28M2250 210v28" stroke="#202a2b" stroke-width="5"/>
+  <g fill="#384344" font-family="Arial, Microsoft JhengHei, sans-serif">
+    <text x="150" y="115" font-size="34" letter-spacing="8">中國歷代朝代</text>
+    <text x="150" y="165" font-size="18" letter-spacing="3" fill="#8d5d42">夏 · 商 · 周 · 秦 · 西漢 · 新 · 東漢 · 三國 · 西晉 · 東晉 · 南北朝 · 隋唐 · 宋遼金夏 · 元明清</text>
+    <text x="2250" y="115" font-size="18" text-anchor="end" letter-spacing="2">CHRONOLOGY / 2070 BCE — 1912 CE</text>
+    <text x="150" y="1510" font-size="18" letter-spacing="2" fill="#8d5d42">主線：中原王朝　　平行帶：同時期政權　　年代為約略通行說法</text>
+  </g>
+  <g stroke="#b9b1a3" stroke-width="1" opacity=".7">
+    <path d="M150 280V1360M465 280V1360M780 280V1360M1095 280V1360M1410 280V1360M1725 280V1360M2040 280V1360M2250 280V1360"/>
+  </g>
+  <g fill="#716d65" font-family="DM Mono, Consolas, monospace" font-size="16">
+    <text x="150" y="1378">2070 BCE</text><text x="450" y="1378">1600</text><text x="765" y="1378">1046</text><text x="1080" y="1378">221</text><text x="1395" y="1378">220 CE</text><text x="1710" y="1378">907</text><text x="2025" y="1378">1271</text><text x="2170" y="1378">1644</text><text x="2250" y="1378" text-anchor="end">1912</text>
+  </g>
+
+  <!-- main line -->
+  <g font-family="Arial, Microsoft JhengHei, sans-serif" font-size="24" fill="#fffdf8">
+    <rect x="150" y="390" width="95" height="118" rx="8" fill="#9d5945"/><text x="197" y="438" text-anchor="middle">夏</text><text x="197" y="476" text-anchor="middle" font-size="15">約前2070–1600</text>
+    <rect x="245" y="390" width="225" height="118" rx="8" fill="#6c4e46"/><text x="357" y="438" text-anchor="middle">商</text><text x="357" y="476" text-anchor="middle" font-size="15">約前1600–1046</text>
+    <rect x="470" y="390" width="310" height="118" rx="8" fill="#b07b4d"/><text x="625" y="438" text-anchor="middle">周</text><text x="625" y="476" text-anchor="middle" font-size="15">前1046–256</text>
+    <rect x="780" y="390" width="70" height="118" rx="8" fill="#303a3b"/><text x="815" y="438" text-anchor="middle">秦</text><text x="815" y="476" text-anchor="middle" font-size="15">前221–206</text>
+    <rect x="850" y="390" width="100" height="118" rx="8" fill="#8d4b4b"/><text x="900" y="438" text-anchor="middle">西漢</text><text x="900" y="476" text-anchor="middle" font-size="15">前202–9</text>
+    <rect x="950" y="390" width="35" height="118" rx="8" fill="#6f6258"/><text x="967" y="438" text-anchor="middle" font-size="19">新</text><text x="967" y="476" text-anchor="middle" font-size="11">9–23</text>
+    <rect x="985" y="390" width="165" height="118" rx="8" fill="#8d4b4b"/><text x="1067" y="438" text-anchor="middle">東漢</text><text x="1067" y="476" text-anchor="middle" font-size="15">25–220</text>
+    <rect x="1150" y="390" width="50" height="118" rx="8" fill="#617b78"/><text x="1175" y="438" text-anchor="middle" font-size="19">三國</text><text x="1175" y="476" text-anchor="middle" font-size="11">220–280</text>
+    <rect x="1200" y="390" width="60" height="118" rx="8" fill="#536c6a"/><text x="1230" y="438" text-anchor="middle" font-size="19">西晉</text><text x="1230" y="476" text-anchor="middle" font-size="11">265–316</text>
+    <rect x="1260" y="390" width="60" height="118" rx="8" fill="#617b78"/><text x="1290" y="438" text-anchor="middle" font-size="19">東晉</text><text x="1290" y="476" text-anchor="middle" font-size="11">317–420</text>
+    <rect x="1320" y="390" width="105" height="118" rx="8" fill="#617b78"/><text x="1372" y="438" text-anchor="middle" font-size="19">南北朝</text><text x="1372" y="476" text-anchor="middle" font-size="11">420–589</text>
+    <rect x="1425" y="390" width="68" height="118" rx="8" fill="#a8784b"/><text x="1459" y="438" text-anchor="middle">隋</text><text x="1459" y="476" text-anchor="middle" font-size="15">581–618</text>
+    <rect x="1493" y="390" width="285" height="118" rx="8" fill="#a34e3f"/><text x="1635" y="438" text-anchor="middle">唐</text><text x="1635" y="476" text-anchor="middle" font-size="15">618–907</text>
+    <rect x="1778" y="390" width="116" height="118" rx="8" fill="#62645d"/><text x="1836" y="438" text-anchor="middle">五代</text><text x="1836" y="476" text-anchor="middle" font-size="15">907–960</text>
+    <rect x="1894" y="390" width="74" height="118" rx="8" fill="#5b718b"/><text x="1931" y="438" text-anchor="middle" font-size="20">北宋</text><text x="1931" y="476" text-anchor="middle" font-size="12">960–1127</text>
+    <rect x="1968" y="390" width="82" height="118" rx="8" fill="#6d8297"/><text x="2009" y="438" text-anchor="middle" font-size="20">南宋</text><text x="2009" y="476" text-anchor="middle" font-size="12">1127–1279</text>
+    <rect x="2050" y="390" width="185" height="118" rx="8" fill="#80644c"/><text x="2142" y="438" text-anchor="middle">元</text><text x="2142" y="476" text-anchor="middle" font-size="15">1271–1368</text>
+    <rect x="2235" y="390" width="115" height="118" rx="8" fill="#9b493d"/><text x="2292" y="438" text-anchor="middle">明</text><text x="2292" y="476" text-anchor="middle" font-size="15">1368–1644</text>
+    <rect x="2350" y="390" width="50" height="118" rx="8" fill="#334e50"/><text x="2375" y="438" text-anchor="middle" font-size="20">清</text><text x="2375" y="476" text-anchor="middle" font-size="11">1644–1912</text>
+  </g>
+  <text x="150" y="345" fill="#384344" font-family="Arial, Microsoft JhengHei, sans-serif" font-size="19" letter-spacing="4">CENTRAL DYNASTIES / 主線</text>
+
+  <!-- parallel dynasties -->
+  <g font-family="Arial, Microsoft JhengHei, sans-serif" font-size="19">
+    <text x="150" y="625" fill="#384344" font-size="19" letter-spacing="4">PARALLEL STATES / 並立政權</text>
+    <g fill="#f7f2e9" stroke="#9d9180" stroke-width="2">
+      <rect x="1778" y="680" width="125" height="74" rx="6"/><rect x="1903" y="680" width="145" height="74" rx="6"/><rect x="1940" y="805" width="110" height="74" rx="6"/>
+      <rect x="2060" y="805" width="105" height="74" rx="6"/>
+    </g>
+    <g fill="#384344" text-anchor="middle">
+      <text x="1840" y="724">遼</text><text x="1975" y="724">西夏</text><text x="1995" y="849">金</text>
+      <text x="2112" y="849">西遼</text>
+    </g>
+    <g fill="#88745f" font-size="14" text-anchor="middle">
+      <text x="1840" y="748">916–1125</text><text x="1975" y="748">1038–1227</text><text x="1995" y="873">1115–1234</text><text x="2112" y="873">1124–1218</text>
+    </g>
+  </g>
+
+  <g fill="#384344" font-family="Arial, Microsoft JhengHei, sans-serif">
+    <text x="150" y="1145" font-size="21" letter-spacing="4">視覺索引</text>
+    <circle cx="150" cy="1200" r="7" fill="#9d5945"/><text x="170" y="1207" font-size="17">主線朝代</text>
+    <circle cx="350" cy="1200" r="7" fill="#f7f2e9" stroke="#9d9180" stroke-width="2"/><text x="370" y="1207" font-size="17">並立政權</text>
+    <path d="M570 1200h72" stroke="#202a2b" stroke-width="3"/><text x="655" y="1207" font-size="17">年代刻度</text>
+    <text x="2250" y="1207" text-anchor="end" font-size="16" fill="#8d5d42">時間並非靜止的線，而是重疊的地層</text>
+  </g>
+  <rect x="125" y="75" width="2150" height="1390" fill="none" stroke="#384344" stroke-width="2"/>
+</svg>

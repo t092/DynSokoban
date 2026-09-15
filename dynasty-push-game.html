@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>朝代關卡遊戲 · 第一關：推積木</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #2a2420;
+    color: #eee9df;
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 28px 16px;
+  }
+  h1 { font-size: 26px; letter-spacing: 6px; margin-bottom: 6px; color: #e8ddc9; }
+  .sub { font-size: 14px; color: #b9a98c; letter-spacing: 2px; margin-bottom: 18px; }
+  .hud { display: flex; gap: 24px; margin-bottom: 16px; font-size: 15px; }
+  .hud b { color: #e0b46a; }
+  button {
+    background: #9d5945; color: #fff; border: none; border-radius: 6px;
+    padding: 8px 18px; font-size: 14px; letter-spacing: 2px; cursor: pointer;
+  }
+  button:hover { background: #b06a52; }
+  #board {
+    display: grid; gap: 4px; padding: 14px;
+    background: #1e1a16; border-radius: 12px;
+    border: 2px solid #54483a; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .cell {
+    width: var(--cell-size, 64px); height: 64px; border-radius: 8px;
+    background: #332c25;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: bold; text-align: center; line-height: 1.2;
+    transition: background .15s;
+  }
+  .wall  { background: #201a15; box-shadow: inset 0 0 0 1px #453a2d; }
+  .floor { background: #3a332a; }
+  .hint {
+    background: #594f40; color: #e0cfA8; box-shadow: inset 0 0 0 2px #8d7a58;
+    font-size: 14px; letter-spacing: 1px;
+  }
+  /* 階層提示磚：一個大時代可橫跨多個細分期欄位。 */
+  .wide-hint { grid-column: span 2; width: auto; min-width: 0; }
+  #board.final-board .cell { font-size: 12px; }
+  .target {
+    background: #3a332a;
+    box-shadow: inset 0 0 0 3px #c9a15a, inset 0 0 18px rgba(224,180,106,.35);
+  }
+  .block-a { background: #b07b4d; color: #fff; box-shadow: 0 4px 0 #7c5535; }
+  .block-b { background: #5b718b; color: #fff; box-shadow: 0 4px 0 #3d4d61; }
+  .block-c { background: #9b493d; color: #fff; box-shadow: 0 4px 0 #693128; }
+  .block-d { background: #536c6a; color: #fff; box-shadow: 0 4px 0 #354644; }
+  .block-e { background: #a34e3f; color: #fff; box-shadow: 0 4px 0 #71372d; }
+  .block-f { background: #a8784b; color: #fff; box-shadow: 0 4px 0 #76552f; }
+  .block-g { background: #80644c; color: #fff; box-shadow: 0 4px 0 #5d4938; }
+  .block-h { background: #617b78; color: #fff; box-shadow: 0 4px 0 #405653; }
+  .block.done { box-shadow: 0 4px 0 rgba(0,0,0,.35), inset 0 0 0 3px #7ec488; }
+  .player {
+    background: #e0b46a !important; color: #333;
+    border-radius: 50%; font-size: 30px;
+    box-shadow: 0 0 14px rgba(224,180,106,.6);
+  }
+  .door { position: relative; overflow: hidden; }
+  .door::after { content: ""; position: absolute; inset: 0; background: #201a15; transition: transform .8s ease; }
+  .door.open::after { transform: translateY(-100%); }
+  .celebrate { animation: celebrate .6s ease-in-out infinite alternate; }
+  @keyframes celebrate { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-8px) rotate(2deg); } }
+  .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+  .confetti i { position: absolute; top: -20px; width: 9px; height: 16px; animation: fall 1.8s linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+  #modal.hidden { display: none; }
+  #msg { margin-top: 18px; font-size: 18px; letter-spacing: 3px; color: #7ec488; min-height: 26px; }
+  .help { margin-top: 10px; font-size: 13px; color: #8d7f6a; letter-spacing: 1px; }
+  .modal {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(20, 16, 12, 0.72);
+    cursor: pointer;
+  }
+  #hudScore, #hudLevelScore { color: #e0b46a; }
+  .modal-box {
+    background: #2e2820; border: 2px solid #c9a15a;
+    border-radius: 16px; padding: 36px 56px; text-align: center;
+    box-shadow: 0 18px 60px rgba(0,0,0,.6);
+    animation: pop .35s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-box h2 { color: #e0b46a; letter-spacing: 4px; margin-bottom: 12px; font-size: 30px; }
+  .modal-box p { color: #eee9df; font-size: 18px; letter-spacing: 2px; margin: 6px 0; }
+  .modal-box .small { color: #b9a98c; font-size: 14px; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <h1>朝代關卡遊戲</h1>
+  <div id="subtitle" class="sub">第一關 · 大分期推積木：夏商 ＋ 周到隋唐 ＋ 宋元 ＋ 明清 ＋ 中華民國</div>
+  <div class="hud">
+    <span>步數：<b id="moves">0</b></span>
+    <span>完成：<b id="done">0</b> / <b id="total">3</b></span>
+    <span>本關分數：<b id="hudLevelScore">10</b></span>
+    <span>總分：<b id="hudScore">0</b></span>
+    <button onclick="restartLevel()">重新開始</button>
+    <button id="soundToggle" onclick="toggleSound()">音效：開</button>
+    <button id="musicToggle" onclick="toggleMusic()">音樂：開</button>
+  </div>
+  <div id="board"></div>
+  <div id="msg"></div>
+  <div class="help">方向鍵／WASD 移動；積木只能推、不能拉。</div>
+  <div id="confetti" class="confetti"></div>
+  <audio id="bgm" src="Shift_and_Slide.mp3" loop preload="auto" volume="0.15"></audio>
+  <div id="modal" class="modal hidden" onclick="closeModal()">
+    <div class="modal-box">
+      <h2 id="modalTitle">🎉 恭喜</h2>
+      <p id="modalBody"></p>
+      <p class="small">點擊任意處繼續</p>
+    </div>
+  </div>
+
+<script>
+const WALL = '#', FLOOR = '.';
+// 頂排：商(2)、周到隋唐目標(3)、五代(4)、宋元目標(5)、明清目標(6)、中華民國(7)
+const ROWS = 9, COLS = 12;
+
+// ---- 音效：以 Web Audio API 即時合成，無需外部音檔 ----
+let audioCtx = null;
+let soundOn = true;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone(freq, duration, type, gain, delay, slideTo) {
+  if (!soundOn) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const start = ctx.currentTime + (delay || 0);
+  const osc = ctx.createOscillator();
+  const vol = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + duration);
+  vol.gain.setValueAtTime(0.0001, start);
+  vol.gain.exponentialRampToValueAtTime(gain || 0.05, start + 0.012);
+  vol.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(vol).connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+}
+
+function sfxStep() { tone(340, 0.06, 'triangle', 0.03); }
+function sfxPush() { tone(150, 0.16, 'square', 0.04, 0, 92); }
+function sfxBlocked() { tone(95, 0.09, 'sawtooth', 0.028); }
+function sfxPlace() { tone(660, 0.11, 'sine', 0.055); tone(990, 0.16, 'sine', 0.04, 0.075); }
+function sfxDoor() { tone(190, 0.5, 'sine', 0.045, 0, 560); }
+function sfxWin() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 0.34, 'sine', 0.065, i * 0.12)); }
+function sfxFinal() {
+  [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) => tone(f, 0.5, 'sine', 0.07, i * 0.14));
+  tone(261.63, 1.5, 'triangle', 0.045, 0.12);
+}
+function sfxReset() { tone(300, 0.14, 'sine', 0.04, 0, 180); }
+function sfxNext() { tone(440, 0.16, 'sine', 0.05); tone(587.33, 0.24, 'sine', 0.05, 0.1); }
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('soundToggle').textContent = soundOn ? '音效：開' : '音效：關';
+  if (soundOn) sfxPlace();
+}
+
+// ---- 背景音樂 ----
+const MUSIC_VOLUME = 0.12;
+let musicOn = true;
+let musicStarted = false;
+const bgm = () => document.getElementById('bgm');
+
+function toggleMusic() {
+  musicOn = !musicOn;
+  const audio = bgm();
+  if (musicOn) {
+    audio.volume = MUSIC_VOLUME;
+    audio.play().catch(() => {});
+    document.getElementById('musicToggle').textContent = '音樂：開';
+  } else {
+    audio.pause();
+    document.getElementById('musicToggle').textContent = '音樂：關';
+  }
+}
+
+function ensureMusic() {
+  if (musicOn && !musicStarted) {
+    musicStarted = true;
+    bgm().volume = MUSIC_VOLUME;
+    bgm().play().catch(() => {});
+  }
+}
+
+function buildLevel() {
+  const level = [];
+  const columns = boardCols();
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < columns; c++) {
+      row.push(r === 0 || r === ROWS - 1 || c === 0 || c === columns - 1 ? WALL : FLOOR);
+    }
+    level.push(row);
+  }
+  if (levelNumber === 3) return markSpanCells(buildThirdLevel(level));
+  if (levelNumber === 2) return markSpanCells(buildSecondLevel(level));
+  if (levelNumber === 5) return markSpanCells(buildFinalLevel(level));
+  if (levelNumber === 4) return markSpanCells(buildFourthLevel(level));
+  // 頂部過關區的歷史提示磚（視為牆）；目標格本身不放任何文字
+  level[1][2] = { hint: '商' };
+  level[1][4] = { hint: '五　代' };
+  level[1][7] = { hint: '中華民國' };
+  level[0][6] = { door: true };
+  return markSpanCells(level);
+}
+
+// 跨格提示磚的延伸欄位也要成為障礙，避免被穿過或被答案磚覆蓋。
+function markSpanCells(level) {
+  for (let r = 0; r < level.length; r++) {
+    for (let c = 0; c < level[r].length; c++) {
+      const cell = level[r][c];
+      if (!cell || !cell.span) continue;
+      for (let offset = 1; offset < cell.span; offset++) {
+        level[r][c + offset] = { spanPart: true };
+      }
+    }
+  }
+  return level;
+}
+
+function buildSecondLevel(level) {
+  // 商｜西周｜東周（春秋、戰國）｜秦｜漢
+  level[3][1] = { hint: '商' };
+  level[3][3] = { hint: '東周', span: 2 };
+  level[3][6] = { hint: '漢' };
+  return level;
+}
+
+function buildThirdLevel(level) {
+  // 頂部主線：秦｜漢（跨三格）｜魏晉南北朝（跨四格）｜隋｜唐
+  level[1][1] = { hint: '秦' };
+  level[1][2] = { hint: '漢', span: 3 };
+  level[1][5] = { hint: '魏晉南北朝', span: 4 };
+  level[1][10] = { hint: '唐' };
+  // 漢的三格細分中，新是固定提示磚，不是答案方塊。
+  level[2][3] = { hint: '新' };
+  // 五胡十六國是固定的北方政權提示磚；東晉答案格在它正下方。
+  level[2][7] = { hint: '五胡十六國' };
+  return level;
+}
+
+function buildFourthLevel(level) {
+  // 固定提示磚：五代十國、明清；唐也必須由玩家推入答案格。
+  level[1][2] = { hint: '五代十國' };
+  level[1][6] = { hint: '明清', span: 2 };
+  return level;
+}
+
+function buildFinalLevel(level) {
+  // 最終時間軸：商｜16 個答案位置｜中華民國
+  level[1][1] = { hint: '商' };
+  level[1][18] = { hint: '中華民國' };
+  return level;
+}
+
+const START_BLOCKS = [
+  { name: '周到隋唐', cls: 'block-a', tr: 1, tc: 3 }, // 商旁
+  { name: '宋元',     cls: 'block-b', tr: 1, tc: 5 }, // 五代旁
+  { name: '明清',     cls: 'block-c', tr: 1, tc: 6 }, // 宋元旁、中華民國前
+];
+const PLAYER_START = { r: 7, c: 5 };
+const SECOND_BLOCKS = [
+  { name: '西周', cls: 'block-a', tr: 3, tc: 2 },
+  { name: '春秋', cls: 'block-b', tr: 4, tc: 3 },
+  { name: '戰國', cls: 'block-c', tr: 4, tc: 4 },
+  { name: '秦', cls: 'block-d', tr: 3, tc: 5 },
+];
+const SECOND_SPAWN_CELLS = [
+  { r: 5, c: 2 }, { r: 5, c: 4 }, { r: 5, c: 6 }, { r: 5, c: 8 },
+  { r: 6, c: 3 }, { r: 6, c: 5 }, { r: 6, c: 7 }, { r: 6, c: 9 },
+];
+const THIRD_BLOCKS = [
+  { name: '西漢', cls: 'block-a', tr: 2, tc: 2 },
+  { name: '東漢', cls: 'block-c', tr: 2, tc: 4 },
+  { name: '三國', cls: 'block-d', tr: 2, tc: 5 },
+  { name: '西晉', cls: 'block-e', tr: 2, tc: 6 },
+  { name: '南北朝', cls: 'block-f', tr: 2, tc: 8 },
+  { name: '東晉', cls: 'block-g', tr: 3, tc: 7 },
+  { name: '隋', cls: 'block-h', tr: 1, tc: 9 },
+];
+const THIRD_SPAWN_CELLS = [
+  { r: 4, c: 2 }, { r: 4, c: 4 }, { r: 4, c: 6 }, { r: 4, c: 8 },
+  { r: 5, c: 3 }, { r: 5, c: 5 }, { r: 5, c: 7 }, { r: 5, c: 9 },
+  { r: 6, c: 2 }, { r: 6, c: 4 }, { r: 6, c: 8 }, { r: 6, c: 9 },
+];
+const FOURTH_BLOCKS = [
+  { name: '唐', cls: 'block-h', tr: 1, tc: 1 },
+  { name: '遼', cls: 'block-a', tr: 1, tc: 3 },
+  { name: '北宋', cls: 'block-b', tr: 2, tc: 3 },
+  { name: '金', cls: 'block-c', tr: 1, tc: 4 },
+  { name: '南宋', cls: 'block-d', tr: 2, tc: 4 },
+  { name: '元', cls: 'block-e', tr: 1, tc: 5 },
+];
+const FOURTH_SPAWN_CELLS = [
+  { r: 3, c: 2 }, { r: 3, c: 4 }, { r: 3, c: 6 }, { r: 3, c: 8 },
+  { r: 4, c: 3 }, { r: 4, c: 5 }, { r: 4, c: 7 }, { r: 4, c: 9 },
+  { r: 5, c: 2 }, { r: 5, c: 4 }, { r: 5, c: 6 }, { r: 5, c: 8 },
+  { r: 6, c: 3 }, { r: 6, c: 5 }, { r: 6, c: 7 }, { r: 6, c: 9 },
+];
+const SPAWN_CELLS = [
+  { r: 3, c: 2 }, { r: 3, c: 4 }, { r: 3, c: 6 }, { r: 3, c: 8 },
+  { r: 4, c: 3 }, { r: 4, c: 5 }, { r: 4, c: 7 }, { r: 4, c: 9 },
+  { r: 5, c: 2 }, { r: 5, c: 4 }, { r: 5, c: 6 }, { r: 5, c: 8 },
+  { r: 6, c: 3 }, { r: 6, c: 5 }, { r: 6, c: 7 }, { r: 6, c: 9 },
+];
+const FINAL_BLOCKS = [
+  { name: '西周', cls: 'block-a', tr: 1, tc: 2 },
+  { name: '東周', cls: 'block-b', tr: 1, tc: 3 },
+  { name: '秦', cls: 'block-c', tr: 1, tc: 4 },
+  { name: '漢', cls: 'block-d', tr: 1, tc: 5 },
+  { name: '三國', cls: 'block-e', tr: 1, tc: 6 },
+  { name: '西晉', cls: 'block-f', tr: 1, tc: 7 },
+  { name: '東晉', cls: 'block-g', tr: 1, tc: 8 },
+  { name: '南北朝', cls: 'block-h', tr: 1, tc: 9 },
+  { name: '隋', cls: 'block-a', tr: 1, tc: 10 },
+  { name: '唐', cls: 'block-b', tr: 1, tc: 11 },
+  { name: '五代十國', cls: 'block-c', tr: 1, tc: 12 },
+  { name: '北宋', cls: 'block-d', tr: 1, tc: 13 },
+  { name: '南宋', cls: 'block-e', tr: 1, tc: 14 },
+  { name: '元', cls: 'block-f', tr: 1, tc: 15 },
+  { name: '明', cls: 'block-g', tr: 1, tc: 16 },
+  { name: '清', cls: 'block-h', tr: 1, tc: 17 },
+];
+const FINAL_SPAWN_CELLS = [
+  // 只在內部第六排隨機排列，確保玩家能從下方逐一推上去。
+  { r: 6, c: 2 }, { r: 6, c: 3 }, { r: 6, c: 4 }, { r: 6, c: 5 },
+  { r: 6, c: 6 }, { r: 6, c: 7 }, { r: 6, c: 8 }, { r: 6, c: 9 },
+  { r: 6, c: 10 }, { r: 6, c: 11 }, { r: 6, c: 12 }, { r: 6, c: 13 },
+  { r: 6, c: 14 }, { r: 6, c: 15 }, { r: 6, c: 16 }, { r: 6, c: 17 },
+];
+
+let levelNumber = 1;
+let level, blocks, player, moves, won;
+const LEVEL_SCORES = { 1: 10, 2: 15, 3: 20, 4: 25, 5: 30 };
+let totalScore = 0;
+let levelScore = LEVEL_SCORES[1];
+let pendingAction = null;
+function boardCols() { return levelNumber === 5 ? 20 : COLS; }
+
+function isWallCell(r, c) {
+  const cell = level[r][c];
+  return cell === WALL || (typeof cell === 'object' && cell !== null);
+}
+function blockAt(r, c) { return blocks.find(b => b.r === r && b.c === c); }
+function isTarget(b, r, c) { return b.tr === r && b.tc === c; }
+
+function updateHud() {
+  document.getElementById('moves').textContent = moves;
+  document.getElementById('done').textContent = blocks.filter(b => isTarget(b, b.r, b.c)).length;
+  document.getElementById('total').textContent = blocks.length;
+  document.getElementById('hudLevelScore').textContent = levelScore;
+  document.getElementById('hudScore').textContent = totalScore;
+}
+
+function loadLevel() {
+  level = buildLevel();
+  // 每局將答案積木放到不同位置，避免固定直線解法。
+  const blockSet = levelNumber === 5
+    ? FINAL_BLOCKS
+    : levelNumber === 4
+      ? FOURTH_BLOCKS
+      : levelNumber === 3
+      ? THIRD_BLOCKS
+      : levelNumber === 2 ? SECOND_BLOCKS : START_BLOCKS;
+  const spawnSet = levelNumber === 5
+    ? FINAL_SPAWN_CELLS
+    : levelNumber === 4
+      ? FOURTH_SPAWN_CELLS
+      : levelNumber === 3
+      ? THIRD_SPAWN_CELLS
+      : levelNumber === 2 ? SECOND_SPAWN_CELLS : SPAWN_CELLS;
+  // 最下面的可行走列沒有空間讓玩家站到方塊下方，因此禁止出生在那一排。
+  const shuffledSpawns = [...spawnSet]
+    .filter(cell => (
+      cell.r > 0 && cell.r < ROWS - 2 &&
+      cell.c > 1 && cell.c < boardCols() - 2
+    ))
+    .sort(() => Math.random() - 0.5);
+  blocks = blockSet.map((b, index) => ({
+    ...b,
+    r: shuffledSpawns[index].r,
+    c: shuffledSpawns[index].c,
+  }));
+  player = { ...PLAYER_START };
+  if (levelNumber === 2) player = { r: 7, c: 6 };
+  if (levelNumber === 3) player = { r: 7, c: 6 };
+  if (levelNumber === 5) player = { r: 7, c: 10 };
+  moves = 0; won = false;
+  document.getElementById('msg').textContent = '';
+  document.getElementById('confetti').innerHTML = '';
+  document.getElementById('subtitle').textContent = levelNumber === 5
+    ? '最後一關 · 從商到中華民國：完成中國歷代全分期'
+    : levelNumber === 3
+      ? '第三關 · 秦到唐：整理漢代與魏晉南北朝的細分期'
+      : levelNumber === 4
+        ? '第四關 · 唐到明清：辨識遼宋、金宋的同時期關係'
+        : levelNumber === 2
+          ? '第二關 · 商到漢：將西周、春秋、戰國、秦放入正確位置'
+          : '第一關 · 大分期推積木：夏商 ＋ 周到隋唐 ＋ 宋元 ＋ 明清 ＋ 中華民國';
+  updateHud();
+  render();
+}
+
+function startLevel(num) {
+  levelNumber = num;
+  levelScore = LEVEL_SCORES[num];
+  pendingAction = null;
+  loadLevel();
+  sfxReset();
+}
+
+function restartLevel() {
+  if (won) return;
+  levelScore = Math.max(0, levelScore - 2);
+  if (levelScore === 0) {
+    gameOverModal();
+    return;
+  }
+  loadLevel();
+  sfxReset();
+}
+
+function showModal(title, body) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  ensureMusic();
+  document.getElementById('modal').classList.add('hidden');
+  const action = pendingAction;
+  pendingAction = null;
+  if (action === 'next') {
+    startLevel(levelNumber + 1);
+  } else if (action === 'complete' || action === 'gameover') {
+    totalScore = 0;
+    startLevel(1);
+  }
+}
+
+function gameOverModal() {
+  document.getElementById('msg').textContent = '本關分數已扣至 0 分，遊戲結束';
+  sfxBlocked();
+  showModal('遊戲結束', `本關分數已扣至 0 分　總分 ${totalScore} 分`);
+  pendingAction = 'gameover';
+}
+
+function tryMove(dr, dc) {
+  if (won) return;
+  const nr = player.r + dr, nc = player.c + dc;
+  if (isWallCell(nr, nc)) { sfxBlocked(); return; }
+  const b = blockAt(nr, nc);
+  if (b) {
+    const br = b.r + dr, bc = b.c + dc;
+    if (isWallCell(br, bc) || blockAt(br, bc)) { sfxBlocked(); return; } // 積木後面被擋住
+    const wasOnTarget = isTarget(b, b.r, b.c);
+    b.r = br; b.c = bc;
+    sfxPush();
+    if (!wasOnTarget && isTarget(b, b.r, b.c)) sfxPlace();
+  } else {
+    sfxStep();
+  }
+  player.r = nr; player.c = nc;
+  moves++;
+  checkWin();
+  render();
+  if (won) showWinEffects();
+}
+
+function checkWin() {
+  const done = blocks.filter(b => isTarget(b, b.r, b.c)).length;
+  document.getElementById('done').textContent = done;
+  if (done === blocks.length) {
+    won = true;
+    totalScore += levelScore;
+    document.getElementById('msg').textContent =
+      levelNumber === 5
+        ? `最後一關通關！完整朝代順序完成（${moves} 步）`
+        : levelNumber === 4
+        ? `第四關通關！唐、遼宋、金宋、元的順序完成（${moves} 步）`
+        : levelNumber === 3
+          ? `第三關通關！秦到唐的分期完成（${moves} 步）`
+          : levelNumber === 2
+            ? `第二關通關！商到漢的順序完成（${moves} 步）`
+            : `通關！三大分期各就各位（${moves} 步）`;
+    updateHud();
+    sfxDoor();
+    if (levelNumber === 5) { sfxFinal(); } else { sfxWin(); }
+    if (levelNumber === 5) {
+      pendingAction = 'complete';
+      showModal('🎉 全部通關！', `本關獲得 ${levelScore} 分　總分 ${totalScore} 分`);
+    } else {
+      pendingAction = 'next';
+      showModal('🎉 恭喜過關！', `第 ${levelNumber} 關完成　獲得 ${levelScore} 分　總分 ${totalScore} 分`);
+    }
+  }
+}
+
+function showWinEffects() {
+  document.querySelector('.door')?.classList.add('open');
+  document.querySelectorAll('.block.done').forEach(block => block.classList.add('celebrate'));
+  celebrate();
+}
+
+function render() {
+  const board = document.getElementById('board');
+  const columns = boardCols();
+  board.classList.toggle('final-board', levelNumber === 5);
+  board.style.setProperty('--cell-size', levelNumber === 5 ? '48px' : '64px');
+  board.style.gridTemplateColumns = `repeat(${columns}, var(--cell-size))`;
+  board.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < columns; c++) {
+      const div = document.createElement('div');
+      const cell = level[r][c];
+      if (cell === WALL) { div.className = 'cell wall'; }
+      else if (typeof cell === 'object' && cell !== null) {
+        div.className = cell.door ? `cell wall door${won ? ' open' : ''}` : 'cell hint';
+        if (cell.hint) div.textContent = cell.hint;
+        if (cell.span) {
+          div.classList.add('wide-hint');
+          div.style.gridColumn = `span ${cell.span}`;
+          c += cell.span - 1;
+        }
+      } else {
+        div.className = 'cell floor';
+        const target = blocks.find(b => b.tr === r && b.tc === c);
+        if (target) div.classList.add('target');
+      }
+      const b = blockAt(r, c);
+      if (b) {
+        div.className = 'cell ' + b.cls;
+        if (isTarget(b, b.r, b.c)) div.classList.add('done');
+        if (won && isTarget(b, b.r, b.c)) div.classList.add('celebrate');
+        div.textContent = b.name;
+      }
+      if (player.r === r && player.c === c) {
+        div.className = 'cell player'; div.textContent = '🤖';
+      }
+      board.appendChild(div);
+    }
+  }
+  document.getElementById('moves').textContent = moves;
+}
+
+function celebrate() {
+  const colors = ['#e0b46a', '#9d5945', '#7ec488', '#5b718b', '#eee9df'];
+  const layer = document.getElementById('confetti');
+  for (let i = 0; i < 42; i++) {
+    const piece = document.createElement('i');
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = `${Math.random() * .55}s`;
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    layer.appendChild(piece);
+  }
+}
+
+function enterNextLevel() {
+  startLevel(Math.min(levelNumber + 1, 5));
+}
+
+document.addEventListener('keydown', e => {
+  const keymap = {
+    ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
+    w: [-1, 0], s: [1, 0], a: [0, -1], d: [0, 1],
+    W: [-1, 0], S: [1, 0], A: [0, -1], D: [0, 1],
+  };
+  const mv = keymap[e.key];
+  if (mv) { e.preventDefault(); ensureMusic(); tryMove(mv[0], mv[1]); }
+});
+
+document.body.addEventListener('click', ensureMusic, { once: true });
+
+startLevel(1);
+</script>
+</body>
+</html>
