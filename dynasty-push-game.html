@@ -118,6 +118,7 @@
   .sequence-tile {
     aspect-ratio: 1; min-width: 0; border: 0; border-radius: 9px; padding: 2px;
     color: #fff; font: bold clamp(11px, 2.5vw, 16px)/1.15 inherit;
+    touch-action: none;
     cursor: pointer; box-shadow: inset 0 -4px 0 rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.3);
     transition: transform .12s, filter .12s, outline .12s;
   }
@@ -209,7 +210,7 @@
   <section id="sequenceGame" class="sequence-game" aria-label="朝代連號消消樂">
     <div class="sequence-intro">
       <h2>朝代連號消消樂</h2>
-      <p>交換相鄰牌面，連成正確的三個朝代即可消除。</p>
+      <p>點選兩個相鄰方塊，或直接拖曳交換；連成正確的三個朝代即可消除。</p>
     </div>
     <div class="sequence-hud">
       <span>剩餘 <b id="sequenceTime" class="timer">30</b> 秒</span>
@@ -257,15 +258,24 @@ if (!currentStudent) {
 function updateStudentHud() {
   const badge = document.getElementById('hudStudentBadge');
   const teacherControl = document.getElementById('teacherLevelControl');
+  const hiddenOption = document.querySelector('#testLevelSelect option[value="6"]');
+  const localTestMode = window.location.protocol === 'file:'
+    || new URLSearchParams(window.location.search).get('testMode') === '1';
   if (currentStudent.isGuest) {
     badge.innerHTML = '👤 體驗模式 <span class="tag-guest">不計成績</span>';
-    teacherControl.style.display = 'none';
+    teacherControl.style.display = localTestMode ? 'inline-flex' : 'none';
+    hiddenOption.hidden = true;
+    if (document.getElementById('testLevelSelect').value === '6') {
+      document.getElementById('testLevelSelect').value = '1';
+    }
   } else if (currentStudent.isTeacher) {
     badge.innerHTML = '👤 教師測試模式';
     teacherControl.style.display = 'inline-flex';
+    hiddenOption.hidden = false;
   } else {
     badge.innerHTML = `👤 ${currentStudent.classId}班 ${currentStudent.seatNo}號 ${currentStudent.name}`;
     teacherControl.style.display = 'none';
+    hiddenOption.hidden = true;
   }
 }
 
@@ -536,6 +546,8 @@ let sequenceTimeLeft = SEQUENCE_TIME_LIMIT;
 let sequenceTimer = null;
 let sequenceBusy = false;
 let sequenceFinished = false;
+let sequencePointer = null;
+let sequenceSuppressClick = false;
 
 function boardCols() { return levelNumber === 5 ? 20 : COLS; }
 
@@ -614,9 +626,12 @@ function startLevel(num) {
 }
 
 function selectTestLevel(value) {
-  if (!currentStudent.isTeacher) return;
+  const localTestMode = window.location.protocol === 'file:'
+    || new URLSearchParams(window.location.search).get('testMode') === '1';
+  if (!currentStudent.isTeacher && !localTestMode) return;
   const selectedLevel = Number(value);
   if (![1, 2, 3, 4, 5, 6].includes(selectedLevel)) return;
+  if (selectedLevel === 6 && currentStudent.isGuest) return;
 
   // 每次切換測試關卡都從乾淨的測試狀態開始，不混入前一關成績。
   totalScore = 0;
@@ -726,13 +741,38 @@ function renderSequenceBoard() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'sequence-tile';
+    button.dataset.index = index;
     button.style.background = SEQUENCE_COLORS[tile];
     button.textContent = SEQUENCE_DYNASTIES[tile];
     button.setAttribute('aria-label', `${SEQUENCE_DYNASTIES[tile]}，第 ${index + 1} 格`);
     if (sequenceSelected === index) button.classList.add('selected');
+    button.addEventListener('pointerdown', event => {
+      sequencePointer = { index, x: event.clientX, y: event.clientY };
+      button.setPointerCapture?.(event.pointerId);
+    });
+    button.addEventListener('pointerup', event => sequenceEndPointer(event));
     button.addEventListener('click', () => sequenceSelect(index));
     board.appendChild(button);
   });
+}
+
+function sequenceEndPointer(event) {
+  if (!sequencePointer) return;
+  const start = sequencePointer;
+  sequencePointer = null;
+  const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+  if (distance < 8) return;
+
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.sequence-tile');
+  const targetIndex = target ? Number(target.dataset.index) : -1;
+  if (targetIndex >= 0 && sequenceAreAdjacent(start.index, targetIndex)) {
+    sequenceSelected = null;
+    sequenceSwap(start.index, targetIndex);
+    renderSequenceBoard();
+  }
+  // pointerup 後的 click 事件不應再把拖曳起點選起來。
+  sequenceSuppressClick = true;
+  window.setTimeout(() => { sequenceSuppressClick = false; }, 0);
 }
 
 function updateSequenceHud() {
@@ -749,6 +789,7 @@ function sequenceAreAdjacent(a, b) {
 }
 
 function sequenceSelect(index) {
+  if (sequenceSuppressClick) return;
   if (sequenceFinished || sequenceBusy) return;
   if (sequenceSelected === null) {
     sequenceSelected = index;
@@ -814,6 +855,7 @@ function sequenceSwap(a, b) {
 }
 
 function startSequenceGame() {
+  if (currentStudent.isGuest) return;
   hiddenLevelUnlocked = true;
   const testLevelSelect = document.getElementById('testLevelSelect');
   if (testLevelSelect) testLevelSelect.value = '6';
@@ -823,6 +865,8 @@ function startSequenceGame() {
   sequenceSelected = null;
   sequenceBusy = false;
   sequenceFinished = false;
+  sequencePointer = null;
+  sequenceSuppressClick = false;
   sequenceCreateBoard();
   document.body.classList.add('sequence-mode');
   document.getElementById('sequenceGame').classList.add('active');
@@ -949,12 +993,12 @@ async function checkWin() {
     if (levelNumber === 5) { sfxFinal(); } else { sfxWin(); }
 
     if (levelNumber === 5) {
-      if (levelScore === LEVEL_SCORES[5]) {
+      if (levelScore === LEVEL_SCORES[5] && !currentStudent.isGuest) {
         pendingAction = 'hidden-intro';
         showModal('🔓 發現隱藏關！', `
           <p>第 5 關滿分通關，取得本次遊戲的隱藏關資格。</p>
           <p style="color:#e0b46a; font-weight:bold;">30 秒內達到 200 分，可獲得奶茶一杯！</p>
-          <p class="small">點擊任意處開始挑戰</p>
+          <button class="btn-gold" onclick="event.stopPropagation(); closeModal();">開始 30 秒挑戰</button>
         `);
         return;
       }
