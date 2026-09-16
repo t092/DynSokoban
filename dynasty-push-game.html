@@ -148,7 +148,7 @@
   <div id="msg"></div>
   <div class="help">方向鍵／WASD 移動；積木只能推、不能拉。</div>
   <div id="confetti" class="confetti"></div>
-  <audio id="bgm" src="Shift_and_Slide.mp3" loop preload="auto" volume="0.15"></audio>
+  <audio id="bgm" src="Shift_and_Slide.mp3" loop preload="auto" autoplay volume="0.15"></audio>
 
   <!-- 通關/結束 Modal -->
   <div id="modal" class="modal hidden" onclick="closeModal()">
@@ -269,9 +269,27 @@ function toggleMusic() {
 
 function ensureMusic() {
   if (musicOn && !musicStarted) {
-    musicStarted = true;
-    bgm().volume = MUSIC_VOLUME;
-    bgm().play().catch(() => {});
+    const audio = bgm();
+    if (!audio) return;
+    audio.volume = MUSIC_VOLUME;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        musicStarted = true;
+      }).catch(() => {
+        const unlock = () => {
+          if (!musicStarted && musicOn) {
+            audio.play().then(() => { musicStarted = true; }).catch(() => {});
+          }
+          ['pointerdown', 'mousemove', 'touchstart', 'keydown'].forEach(evt => {
+            window.removeEventListener(evt, unlock);
+          });
+        };
+        ['pointerdown', 'mousemove', 'touchstart', 'keydown'].forEach(evt => {
+          window.addEventListener(evt, unlock, { once: true, passive: true });
+        });
+      });
+    }
   }
 }
 
@@ -526,7 +544,9 @@ function closeModal() {
   pendingAction = null;
   if (action === 'next') {
     startLevel(levelNumber + 1);
-  } else if (action === 'complete' || action === 'gameover') {
+  } else if (action === 'complete') {
+    window.location.href = 'index.html';
+  } else if (action === 'gameover') {
     totalScore = 0;
     totalMovesAllLevels = 0;
     levelDetailsLog = [];
@@ -814,7 +834,8 @@ document.addEventListener('keydown', e => {
   if (mv) { e.preventDefault(); ensureMusic(); tryMove(mv[0], mv[1]); }
 });
 
-document.body.addEventListener('click', ensureMusic, { once: true });
+// 進入頁面立即嘗試播放音樂
+ensureMusic();
 
 // 啟動第一關
 startLevel(1);
