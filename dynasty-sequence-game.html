@@ -50,6 +50,8 @@
   }
   .tile:hover { filter: brightness(1.15); transform: translateY(-2px); }
   .tile.selected { outline: 3px solid #f4cf75; outline-offset: 2px; transform: scale(.94); }
+  .tile.empty { background: #211914 !important; box-shadow: inset 0 0 0 1px #34271d; cursor: default; }
+  .tile.empty:hover { filter: none; transform: none; }
   .tile.clearing { animation: clearTile .22s ease forwards; }
   @keyframes clearTile { to { opacity: 0; transform: scale(.2) rotate(12deg); } }
   .message { min-height: 26px; margin-top: 12px; color: #e0b46a; letter-spacing: 1px; }
@@ -65,6 +67,7 @@
   <section id="intro" class="intro">
     <h2>隱藏關挑戰</h2>
     <p>交換相鄰方塊，讓三個連續朝代排成橫線或直線即可消除。</p>
+    <p>也可以先選取方塊，再用方向鍵上下左右交換位置。</p>
     <p class="reward">30 秒內達到 200 分，可獲得奶茶一杯！</p>
     <button id="startButton">開始 30 秒挑戰</button>
     <button class="secondary" onclick="location.href='index.html'">返回首頁</button>
@@ -140,6 +143,11 @@ function render() {
   tiles.forEach((value, index) => {
     const tile = document.createElement('button');
     tile.type = 'button'; tile.className = 'tile'; tile.dataset.index = index;
+    if (value == null) {
+      tile.classList.add('empty'); tile.disabled = true; tile.setAttribute('aria-label', '空缺位置');
+      board.appendChild(tile);
+      return;
+    }
     tile.textContent = DYNASTIES[value]; tile.style.background = COLORS[value];
     tile.setAttribute('aria-label', `${DYNASTIES[value]}，第 ${index + 1} 格`);
     if (selected === index) tile.classList.add('selected');
@@ -178,31 +186,75 @@ function selectTile(index) {
   render();
 }
 
-function dropTiles() {
+function moveSelected(dr, dc) {
+  if (selected === null || finished || busy) return;
+  const row = Math.floor(selected / SIZE), col = selected % SIZE;
+  const nextRow = row + dr, nextCol = col + dc;
+  if (nextRow < 0 || nextRow >= SIZE || nextCol < 0 || nextCol >= SIZE) return;
+  const nextIndex = nextRow * SIZE + nextCol;
+  swap(selected, nextIndex, nextIndex);
+}
+
+function collapseTiles() {
   for (let c = 0; c < SIZE; c++) {
-    const remaining = [];
-    for (let r = SIZE - 1; r >= 0; r--) if (tiles[r * SIZE + c] != null) remaining.push(tiles[r * SIZE + c]);
-    for (let r = SIZE - 1; r >= 0; r--) tiles[r * SIZE + c] = remaining[SIZE - 1 - r] ?? randomTile();
+    let writeRow = SIZE - 1;
+    for (let r = SIZE - 1; r >= 0; r--) {
+      const value = tiles[r * SIZE + c];
+      if (value == null) continue;
+      tiles[writeRow * SIZE + c] = value;
+      if (writeRow !== r) tiles[r * SIZE + c] = null;
+      writeRow--;
+    }
+    for (let r = writeRow; r >= 0; r--) tiles[r * SIZE + c] = null;
   }
 }
 
-function resolve() {
+function fillTiles() {
+  tiles = tiles.map(value => value == null ? randomTile() : value);
+}
+
+function removeMatches() {
   const matches = findMatches();
   if (!matches.size) { combo = 0; return false; }
   combo++;
   score += matches.size * 10 + combo * 10;
   matches.forEach(index => { tiles[index] = null; });
-  dropTiles(); updateHud(); return true;
+  updateHud();
+  render();
+  return true;
 }
 
-function swap(a, b) {
+function settleBoard(selectionAfterSwap) {
+  setTimeout(() => {
+    collapseTiles();
+    render();
+    setTimeout(() => {
+      fillTiles();
+      if (selectionAfterSwap !== null) selected = selectionAfterSwap;
+      render();
+      if (removeMatches()) {
+        settleBoard(selectionAfterSwap);
+      } else {
+        busy = false;
+        render();
+      }
+    }, 180);
+  }, 180);
+}
+
+function swap(a, b, selectionAfterSwap = null) {
   if (busy || finished) return;
   busy = true; [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
-  if (!resolve()) {
-    [tiles[a], tiles[b]] = [tiles[b], tiles[a]]; combo = 0; busy = false; render(); return;
+  if (!removeMatches()) {
+    combo = 0;
+    if (selectionAfterSwap !== null) selected = selectionAfterSwap;
+    busy = false;
+    render();
+    return;
   }
+  if (selectionAfterSwap !== null) selected = selectionAfterSwap;
   render();
-  setTimeout(() => { while (resolve()) render(); busy = false; render(); }, 180);
+  settleBoard(selectionAfterSwap);
 }
 
 function updateHud() {
@@ -234,6 +286,16 @@ function start() {
 }
 
 document.getElementById('studentName').textContent = student && !student.isGuest ? `👤 ${student.isTeacher ? '教師測試模式' : student.name}` : '訪客模式';
+document.addEventListener('keydown', event => {
+  const directions = {
+    ArrowUp: [-1, 0], ArrowDown: [1, 0],
+    ArrowLeft: [0, -1], ArrowRight: [0, 1]
+  };
+  const direction = directions[event.key];
+  if (!direction || selected === null) return;
+  event.preventDefault();
+  moveSelected(direction[0], direction[1]);
+});
 if (!hasAccess()) {
   document.getElementById('intro').classList.add('hidden');
   document.getElementById('locked').classList.remove('hidden');
