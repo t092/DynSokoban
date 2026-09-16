@@ -68,15 +68,15 @@
     <h2>隱藏關挑戰</h2>
     <p>交換相鄰方塊，讓三個連續朝代排成橫線或直線即可消除。</p>
     <p>也可以先選取方塊，再用方向鍵上下左右交換位置。</p>
-    <p class="reward">30 秒內達到 200 分，可獲得奶茶一杯！</p>
-    <button id="startButton">開始 30 秒挑戰</button>
+    <p class="reward">60 秒內達到 150 分，可獲得奶茶一杯！</p>
+    <button id="startButton">開始 60 秒挑戰</button>
     <button class="secondary" onclick="location.href='index.html'">返回首頁</button>
   </section>
 
   <section id="game" class="hidden">
     <div class="hud">
-      <span>剩餘 <b id="time" class="timer">30</b> 秒</span>
-      <span>得分 <b id="score">0</b> / 200</span>
+      <span>剩餘 <b id="time" class="timer">60</b> 秒</span>
+      <span>得分 <b id="score">0</b> / 150</span>
       <span>連鎖 <b id="combo">0</b></span>
     </div>
     <div id="board" aria-label="朝代消消樂棋盤"></div>
@@ -93,8 +93,8 @@
 <script>
 const UNLOCK_KEY = 'CAI_HIDDEN_LEVEL_UNLOCK';
 const SIZE = 8;
-const TIME_LIMIT = 30;
-const REWARD_SCORE = 200;
+const TIME_LIMIT = 60;
+const REWARD_SCORE = 150;
 const DYNASTIES = ['商', '周', '秦', '漢', '三國', '晉', '南北朝', '隋', '唐', '五代', '宋', '元', '明', '清'];
 const COLORS = ['#a85d42', '#b27a4d', '#4e6c82', '#9b493d', '#617b78', '#536c6a', '#80644c', '#a8784b', '#a34e3f', '#62645d', '#5b718b', '#80644c', '#9b493d', '#334e50'];
 const student = CAI.getStudent();
@@ -269,8 +269,8 @@ function finish() {
   finished = true; clearInterval(timer); timer = null;
   const reward = score >= REWARD_SCORE;
   document.getElementById('message').innerHTML = reward
-    ? '<strong>🧋 恭喜！達成 200 分奶茶獎勵！</strong>'
-    : `挑戰結束，這次得分 ${score} 分，未達 200 分。`;
+    ? '<strong>🧋 恭喜！達成 150 分奶茶獎勵！</strong>'
+    : `挑戰結束，這次得分 ${score} 分，未達 150 分。`;
   setTimeout(() => {
     alert(reward ? '恭喜達成奶茶獎勵！' : `挑戰結束：${score} 分`);
     location.href = 'index.html';
