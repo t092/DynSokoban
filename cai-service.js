@@ -5,7 +5,7 @@
 
 const CAI_CONFIG = {
   CLIENT_ID: '403500919614-rn7o78kh1dr3pu923c3re8c9ri1s3onq.apps.googleusercontent.com',
-  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbxnPH-z3TUfe3lXU1UbcPw6nrCntseA84PvnE8MMdYTTm3MjegU7zz6xTGLvG-ztkRBPQ/exec',
+  GAS_API_URL: 'https://script.google.com/macros/s/AKfycbwMarS0501vncxJcIhAK0XjuwlMA6We3txTsrww0wg-WM_M8SOtwci9B3bCfUUY9_vyWw/exec',
   HOSTED_DOMAIN: 'st.tc.edu.tw',
   TEACHER_EMAIL: 't202@st.tc.edu.tw',
   SESSION_KEY: 'CAI_STUDENT_SESSION' // 使用 sessionStorage，關閉瀏覽器即清空防呆

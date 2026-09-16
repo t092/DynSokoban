@@ -668,9 +668,23 @@ async function checkWin() {
       }
     } else {
       pendingAction = 'next';
+      let syncText = '';
+      if (CAI.isLoggedIn()) {
+        syncText = '<p id="levelSyncStatus" style="font-size:12px; color:#7ec488; margin-top:8px;">✓ 本關成績已同步至老師的試算表</p>';
+        const duration = Math.round((Date.now() - gameStartTime) / 1000);
+        CAI.submitScore({
+          totalScore,
+          moves: totalMovesAllLevels,
+          durationSeconds: duration,
+          maxLevel: levelNumber,
+          isCompleted: false,
+          levelDetails: levelDetailsLog
+        });
+      }
       showModal('🎉 恭喜過關！', `
         <p>第 ${levelNumber} 關完成！</p>
         <p>本關獲得 <b>${levelScore}</b> 分 · 累計總分 <b>${totalScore}</b> 分</p>
+        ${syncText}
       `);
     }
   }

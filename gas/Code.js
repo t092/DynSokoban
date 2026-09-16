@@ -9,11 +9,23 @@ const SHEET_NAMES = {
   ROSTER: '學生名冊'
 };
 
+const TARGET_SPREADSHEET_ID = '1Gsf_NKPJZHbG5WbmW7qKh2jPBYkuTyhoCVlxx2pDfXE';
+
 /**
- * 取得試算表物件 (優先讀取容器綁定試算表，否則讀取 ScriptProperties 內的 SPREADSHEET_ID)
+ * 取得試算表物件 (以 TARGET_SPREADSHEET_ID 開啟，或讀取容器綁定試算表)
  */
 function getSpreadsheet() {
-  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  let ss = null;
+  if (TARGET_SPREADSHEET_ID) {
+    try {
+      ss = SpreadsheetApp.openById(TARGET_SPREADSHEET_ID);
+    } catch (err) {
+      console.warn('無法透過 TARGET_SPREADSHEET_ID 開啟:', err);
+    }
+  }
+  if (!ss) {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  }
   if (!ss) {
     const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
     if (propId) {
@@ -21,7 +33,7 @@ function getSpreadsheet() {
     }
   }
   if (!ss) {
-    throw new Error('找不到可用的 Google 試算表。請確認本腳本為容器綁定 (Container-bound)，或於指令碼屬性中設定 SPREADSHEET_ID。');
+    throw new Error('找不到可用的 Google 試算表。請確認 TARGET_SPREADSHEET_ID 或設定 SPREADSHEET_ID 屬性。');
   }
   return ss;
 }
