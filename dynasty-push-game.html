@@ -91,54 +91,10 @@
   #msg { margin-top: 14px; font-size: 16px; letter-spacing: 2px; color: #7ec488; min-height: 24px; text-align: center; }
   .help { margin-top: 10px; font-size: 13px; color: #8d7f6a; letter-spacing: 1px; }
 
-  /* 隱藏關：限時連號消消樂 */
-  .sequence-game { display: none; width: min(94vw, 680px); margin-top: 8px; }
-  .sequence-game.active { display: block; }
-  .sequence-intro {
-    margin: 0 auto 14px; padding: 16px 20px; border: 1px solid #8d7a58;
-    border-radius: 14px; background: linear-gradient(135deg, #3d3025, #241d18);
-    text-align: center; box-shadow: 0 12px 32px rgba(0,0,0,.28);
-  }
-  .sequence-intro h2 { color: #e0b46a; letter-spacing: 3px; font-size: 22px; }
-  .sequence-intro p { color: #cbbda5; margin-top: 7px; font-size: 14px; }
-  .sequence-hud {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
-    margin-bottom: 12px; padding: 10px 14px; border: 1px solid #6b5439;
-    border-radius: 10px; background: #211a15; color: #cbbda5; font-size: 14px;
-  }
-  .sequence-hud b { color: #f2c66d; font-size: 21px; }
-  .sequence-hud .timer { color: #ef9a62; }
-  .sequence-hud .timer.urgent { color: #ff625a; animation: timerPulse .45s ease-in-out infinite alternate; }
-  @keyframes timerPulse { to { transform: scale(1.12); } }
-  #sequenceBoard {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; padding: 10px;
-    border: 2px solid #685038; border-radius: 14px; background: #17120f;
-    box-shadow: 0 16px 40px rgba(0,0,0,.52);
-  }
-  .sequence-tile {
-    aspect-ratio: 1; min-width: 0; border: 0; border-radius: 9px; padding: 2px;
-    color: #fff; font: bold clamp(11px, 2.5vw, 16px)/1.15 inherit;
-    touch-action: none;
-    cursor: pointer; box-shadow: inset 0 -4px 0 rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.3);
-    transition: transform .12s, filter .12s, outline .12s;
-  }
-  .sequence-tile:hover { filter: brightness(1.14); transform: translateY(-2px); }
-  .sequence-tile.selected { outline: 3px solid #f4cf75; outline-offset: 2px; transform: scale(.94); }
-  .sequence-tile.clearing { animation: tileClear .24s ease forwards; }
-  @keyframes tileClear { to { opacity: 0; transform: scale(.2) rotate(12deg); } }
-  .sequence-result { min-height: 25px; margin-top: 12px; text-align: center; color: #e0b46a; letter-spacing: 1px; }
-  .sequence-mode .classic-only, .sequence-mode #board, .sequence-mode #msg, .sequence-mode .help { display: none; }
   .teacher-only { display: none; }
   .teacher-only select {
     background: #211a15; color: #f0d69a; border: 1px solid #8d7a58;
     border-radius: 5px; padding: 5px 7px; font: inherit; cursor: pointer;
-  }
-  .sequence-mode .teacher-only { display: none !important; }
-  @media (max-width: 520px) {
-    .sequence-game { width: 96vw; }
-    .sequence-hud { padding: 8px 9px; font-size: 12px; }
-    .sequence-hud b { font-size: 18px; }
-    #sequenceBoard { gap: 3px; padding: 7px; }
   }
 
   /* 彈窗樣式 */
@@ -207,19 +163,6 @@
   <div id="board"></div>
   <div id="msg"></div>
   <div class="help">方向鍵／WASD 移動；積木只能推、不能拉。</div>
-  <section id="sequenceGame" class="sequence-game" aria-label="朝代連號消消樂">
-    <div class="sequence-intro">
-      <h2>朝代連號消消樂</h2>
-      <p>點選兩個相鄰方塊，或直接拖曳交換；連成正確的三個朝代即可消除。</p>
-    </div>
-    <div class="sequence-hud">
-      <span>剩餘 <b id="sequenceTime" class="timer">30</b> 秒</span>
-      <span>得分 <b id="sequenceScore">0</b> / 200</span>
-      <span>連鎖 <b id="sequenceCombo">0</b></span>
-    </div>
-    <div id="sequenceBoard"></div>
-    <div id="sequenceResult" class="sequence-result" aria-live="polite"></div>
-  </section>
   <div id="confetti" class="confetti"></div>
   <audio id="bgm" src="Shift_and_Slide.mp3" loop preload="auto" autoplay volume="0.15"></audio>
 
@@ -531,24 +474,6 @@ let totalMovesAllLevels = 0;
 let currentLevelRetries = 0;
 let levelDetailsLog = [];
 
-// 隱藏關只存在本次頁面生命週期，不寫入 localStorage 或 sessionStorage。
-const SEQUENCE_DYNASTIES = ['商', '周', '秦', '漢', '三國', '晉', '南北朝', '隋', '唐', '五代', '宋', '元', '明', '清'];
-const SEQUENCE_COLORS = ['#a85d42', '#b27a4d', '#4e6c82', '#9b493d', '#617b78', '#536c6a', '#80644c', '#a8784b', '#a34e3f', '#62645d', '#5b718b', '#80644c', '#9b493d', '#334e50'];
-const SEQUENCE_SIZE = 8;
-const SEQUENCE_TIME_LIMIT = 30;
-const SEQUENCE_REWARD_SCORE = 200;
-let hiddenLevelUnlocked = false;
-let sequenceTiles = [];
-let sequenceSelected = null;
-let sequenceScore = 0;
-let sequenceCombo = 0;
-let sequenceTimeLeft = SEQUENCE_TIME_LIMIT;
-let sequenceTimer = null;
-let sequenceBusy = false;
-let sequenceFinished = false;
-let sequencePointer = null;
-let sequenceSuppressClick = false;
-
 function boardCols() { return levelNumber === 5 ? 20 : COLS; }
 
 function isWallCell(r, c) {
@@ -625,6 +550,14 @@ function startLevel(num) {
   sfxReset();
 }
 
+const HIDDEN_UNLOCK_KEY = 'CAI_HIDDEN_LEVEL_UNLOCK';
+
+function openHiddenGame() {
+  if (currentStudent.isGuest) return;
+  sessionStorage.setItem(HIDDEN_UNLOCK_KEY, '1');
+  window.location.href = 'dynasty-sequence-game.html';
+}
+
 function selectTestLevel(value) {
   const localTestMode = window.location.protocol === 'file:'
     || new URLSearchParams(window.location.search).get('testMode') === '1';
@@ -639,15 +572,8 @@ function selectTestLevel(value) {
   levelDetailsLog = [];
   gameStartTime = Date.now();
   pendingAction = null;
-  hiddenLevelUnlocked = false;
-  window.clearInterval(sequenceTimer);
-  sequenceTimer = null;
-  sequenceFinished = true;
-  document.body.classList.remove('sequence-mode');
-  document.getElementById('sequenceGame').classList.remove('active');
-
   if (selectedLevel === 6) {
-    startSequenceGame();
+    openHiddenGame();
   } else {
     startLevel(selectedLevel);
   }
@@ -679,7 +605,7 @@ function closeModal() {
   if (action === 'next') {
     startLevel(levelNumber + 1);
   } else if (action === 'hidden-intro') {
-    startSequenceGame();
+    openHiddenGame();
   } else if (action === 'complete') {
     window.location.href = 'index.html';
   } else if (action === 'gameover') {
@@ -689,225 +615,6 @@ function closeModal() {
     gameStartTime = Date.now();
     startLevel(1);
   }
-}
-
-function sequenceRandomTile() {
-  return Math.floor(Math.random() * SEQUENCE_DYNASTIES.length);
-}
-
-function sequenceHasMatchAt(tiles, r, c) {
-  const index = r * SEQUENCE_SIZE + c;
-  const value = tiles[index];
-  if (value == null) return false;
-  return (
-    c <= SEQUENCE_SIZE - 3 &&
-    tiles[index + 1] === value + 1 &&
-    tiles[index + 2] === value + 2
-  ) || (
-    r <= SEQUENCE_SIZE - 3 &&
-    tiles[index + SEQUENCE_SIZE] === value + 1 &&
-    tiles[index + SEQUENCE_SIZE * 2] === value + 2
-  );
-}
-
-function sequenceFindMatches() {
-  const matches = new Set();
-  for (let r = 0; r < SEQUENCE_SIZE; r++) {
-    for (let c = 0; c < SEQUENCE_SIZE; c++) {
-      const index = r * SEQUENCE_SIZE + c;
-      const value = sequenceTiles[index];
-      if (value == null) continue;
-      if (c <= SEQUENCE_SIZE - 3 && sequenceTiles[index + 1] === value + 1 && sequenceTiles[index + 2] === value + 2) {
-        matches.add(index); matches.add(index + 1); matches.add(index + 2);
-      }
-      if (r <= SEQUENCE_SIZE - 3 && sequenceTiles[index + SEQUENCE_SIZE] === value + 1 && sequenceTiles[index + SEQUENCE_SIZE * 2] === value + 2) {
-        matches.add(index); matches.add(index + SEQUENCE_SIZE); matches.add(index + SEQUENCE_SIZE * 2);
-      }
-    }
-  }
-  return matches;
-}
-
-function sequenceCreateBoard() {
-  do {
-    sequenceTiles = Array.from({ length: SEQUENCE_SIZE * SEQUENCE_SIZE }, sequenceRandomTile);
-  } while (sequenceFindMatches().size > 0);
-}
-
-function renderSequenceBoard() {
-  const board = document.getElementById('sequenceBoard');
-  board.innerHTML = '';
-  sequenceTiles.forEach((tile, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'sequence-tile';
-    button.dataset.index = index;
-    button.style.background = SEQUENCE_COLORS[tile];
-    button.textContent = SEQUENCE_DYNASTIES[tile];
-    button.setAttribute('aria-label', `${SEQUENCE_DYNASTIES[tile]}，第 ${index + 1} 格`);
-    if (sequenceSelected === index) button.classList.add('selected');
-    button.addEventListener('pointerdown', event => {
-      sequencePointer = { index, x: event.clientX, y: event.clientY };
-      button.setPointerCapture?.(event.pointerId);
-    });
-    button.addEventListener('pointerup', event => sequenceEndPointer(event));
-    button.addEventListener('click', () => sequenceSelect(index));
-    board.appendChild(button);
-  });
-}
-
-function sequenceEndPointer(event) {
-  if (!sequencePointer) return;
-  const start = sequencePointer;
-  sequencePointer = null;
-  const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-  if (distance < 8) return;
-
-  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.sequence-tile');
-  const targetIndex = target ? Number(target.dataset.index) : -1;
-  if (targetIndex >= 0 && sequenceAreAdjacent(start.index, targetIndex)) {
-    sequenceSelected = null;
-    sequenceSwap(start.index, targetIndex);
-    renderSequenceBoard();
-  }
-  // pointerup 後的 click 事件不應再把拖曳起點選起來。
-  sequenceSuppressClick = true;
-  window.setTimeout(() => { sequenceSuppressClick = false; }, 0);
-}
-
-function updateSequenceHud() {
-  document.getElementById('sequenceTime').textContent = sequenceTimeLeft;
-  document.getElementById('sequenceScore').textContent = sequenceScore;
-  document.getElementById('sequenceCombo').textContent = sequenceCombo;
-  document.getElementById('sequenceTime').classList.toggle('urgent', sequenceTimeLeft <= 5);
-}
-
-function sequenceAreAdjacent(a, b) {
-  const ar = Math.floor(a / SEQUENCE_SIZE), ac = a % SEQUENCE_SIZE;
-  const br = Math.floor(b / SEQUENCE_SIZE), bc = b % SEQUENCE_SIZE;
-  return Math.abs(ar - br) + Math.abs(ac - bc) === 1;
-}
-
-function sequenceSelect(index) {
-  if (sequenceSuppressClick) return;
-  if (sequenceFinished || sequenceBusy) return;
-  if (sequenceSelected === null) {
-    sequenceSelected = index;
-  } else if (sequenceSelected === index) {
-    sequenceSelected = null;
-  } else if (sequenceAreAdjacent(sequenceSelected, index)) {
-    sequenceSwap(sequenceSelected, index);
-    sequenceSelected = null;
-  } else {
-    sequenceSelected = index;
-  }
-  renderSequenceBoard();
-}
-
-function sequenceDropTiles() {
-  for (let c = 0; c < SEQUENCE_SIZE; c++) {
-    const remaining = [];
-    for (let r = SEQUENCE_SIZE - 1; r >= 0; r--) {
-      const tile = sequenceTiles[r * SEQUENCE_SIZE + c];
-      if (tile != null) remaining.push(tile);
-    }
-    for (let r = SEQUENCE_SIZE - 1; r >= 0; r--) {
-      sequenceTiles[r * SEQUENCE_SIZE + c] = remaining[SEQUENCE_SIZE - 1 - r] ?? sequenceRandomTile();
-    }
-  }
-}
-
-function sequenceResolveMatches() {
-  const matches = sequenceFindMatches();
-  if (!matches.size) {
-    sequenceCombo = 0;
-    return false;
-  }
-  sequenceCombo++;
-  sequenceScore += matches.size * 10 + sequenceCombo * 10;
-  matches.forEach(index => { sequenceTiles[index] = null; });
-  sequenceDropTiles();
-  updateSequenceHud();
-  return true;
-}
-
-function sequenceSwap(a, b) {
-  if (sequenceBusy) return;
-  sequenceBusy = true;
-  [sequenceTiles[a], sequenceTiles[b]] = [sequenceTiles[b], sequenceTiles[a]];
-  if (!sequenceResolveMatches()) {
-    [sequenceTiles[a], sequenceTiles[b]] = [sequenceTiles[b], sequenceTiles[a]];
-    sequenceCombo = 0;
-    sequenceBusy = false;
-    renderSequenceBoard();
-    return;
-  }
-  sfxPlace();
-  renderSequenceBoard();
-  window.setTimeout(() => {
-    while (sequenceResolveMatches()) renderSequenceBoard();
-    sequenceBusy = false;
-    renderSequenceBoard();
-    if (sequenceScore >= SEQUENCE_REWARD_SCORE) {
-      document.getElementById('sequenceResult').textContent = '已達到奶茶獎勵門檻！繼續挑戰更高分！';
-    }
-  }, 180);
-}
-
-function startSequenceGame() {
-  if (currentStudent.isGuest) return;
-  hiddenLevelUnlocked = true;
-  const testLevelSelect = document.getElementById('testLevelSelect');
-  if (testLevelSelect) testLevelSelect.value = '6';
-  sequenceScore = 0;
-  sequenceCombo = 0;
-  sequenceTimeLeft = SEQUENCE_TIME_LIMIT;
-  sequenceSelected = null;
-  sequenceBusy = false;
-  sequenceFinished = false;
-  sequencePointer = null;
-  sequenceSuppressClick = false;
-  sequenceCreateBoard();
-  document.body.classList.add('sequence-mode');
-  document.getElementById('sequenceGame').classList.add('active');
-  document.getElementById('subtitle').textContent = '隱藏關 · 30 秒朝代連號消消樂：挑戰 200 分奶茶獎勵';
-  document.getElementById('sequenceResult').textContent = '';
-  updateSequenceHud();
-  renderSequenceBoard();
-  sequenceTimer = window.setInterval(() => {
-    sequenceTimeLeft = Math.max(0, sequenceTimeLeft - 1);
-    updateSequenceHud();
-    if (sequenceTimeLeft === 0) finishSequenceGame();
-  }, 1000);
-}
-
-async function finishSequenceGame() {
-  if (sequenceFinished) return;
-  sequenceFinished = true;
-  window.clearInterval(sequenceTimer);
-  sequenceTimer = null;
-  sequenceBusy = true;
-  const rewardWon = sequenceScore >= SEQUENCE_REWARD_SCORE;
-  totalScore += sequenceScore;
-  levelDetailsLog.push({
-    level: 6,
-    type: 'sequence-match',
-    score: sequenceScore,
-    moves: 0,
-    combo: sequenceCombo,
-    reward: rewardWon
-  });
-  pendingAction = 'complete';
-  const title = rewardWon ? '🧋 奶茶挑戰成功！' : '⏱ 隱藏關結束';
-  const rewardText = rewardWon
-    ? '<p style="color:#f2c66d; font-weight:bold;">恭喜！30 秒內達到 200 分，可獲得奶茶一杯！</p>'
-    : '<p style="color:#b9a98c;">本次未達 200 分，未取得奶茶獎勵。</p>';
-  showModal(title, `
-    <p>隱藏關得分：<b>${sequenceScore}</b> 分</p>
-    ${rewardText}
-    <p style="font-size:14px; color:#b9a98c;">本次遊戲總分：${totalScore} 分</p>
-  `);
-  sfxFinal();
 }
 
 async function gameOverModal() {
@@ -1195,7 +902,6 @@ function closeLeaderboardModal() {
 
 // ---- 鍵盤事件監聽 ----
 document.addEventListener('keydown', e => {
-  if (hiddenLevelUnlocked) return;
   const keymap = {
     ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
     w: [-1, 0], s: [1, 0], a: [0, -1], d: [0, 1],

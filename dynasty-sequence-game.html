@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>朝代連號消消樂</title>
+<script src="cai-service.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 24px 16px; color: #eee9df;
+    background: radial-gradient(circle at 50% 0%, #493323 0, #2a2420 45%, #17120f 100%);
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+  }
+  .page { width: min(94vw, 720px); margin: 0 auto; text-align: center; }
+  h1 { margin: 10px 0 6px; color: #f0d69a; letter-spacing: 5px; font-size: clamp(24px, 6vw, 38px); }
+  .subtitle { color: #cbbda5; letter-spacing: 2px; font-size: 14px; }
+  .intro, .result, .locked {
+    margin: 22px auto 14px; padding: 20px; border: 1px solid #8d7a58;
+    border-radius: 15px; background: rgba(38, 28, 21, .9); box-shadow: 0 16px 44px rgba(0,0,0,.36);
+  }
+  .intro h2, .result h2, .locked h2 { margin: 0 0 10px; color: #e0b46a; letter-spacing: 3px; }
+  .intro p, .result p, .locked p { margin: 8px 0; line-height: 1.6; }
+  .reward { color: #f2c66d; font-weight: bold; font-size: 18px; }
+  button {
+    border: 0; border-radius: 7px; padding: 10px 18px; color: #fff; background: #9d5945;
+    font: inherit; cursor: pointer; transition: transform .12s, filter .12s;
+  }
+  button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .secondary { background: #4a3e32; margin-left: 8px; }
+  .hud {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    margin: 14px 0 10px; padding: 10px 14px; border: 1px solid #6b5439;
+    border-radius: 10px; background: #211a15; color: #cbbda5;
+  }
+  .hud b { color: #f2c66d; font-size: 22px; }
+  .timer { color: #ef9a62 !important; }
+  .timer.urgent { color: #ff625a !important; animation: pulse .45s ease-in-out infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.14); } }
+  #board {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; padding: 10px;
+    border: 2px solid #685038; border-radius: 14px; background: #17120f;
+    box-shadow: 0 18px 48px rgba(0,0,0,.5);
+  }
+  .tile {
+    aspect-ratio: 1; min-width: 0; padding: 2px; border-radius: 9px; color: #fff;
+    font: bold clamp(10px, 2.5vw, 16px)/1.15 inherit; touch-action: none;
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.26), 0 2px 0 rgba(0,0,0,.3);
+    transition: transform .12s, filter .12s, outline .12s;
+  }
+  .tile:hover { filter: brightness(1.15); transform: translateY(-2px); }
+  .tile.selected { outline: 3px solid #f4cf75; outline-offset: 2px; transform: scale(.94); }
+  .tile.clearing { animation: clearTile .22s ease forwards; }
+  @keyframes clearTile { to { opacity: 0; transform: scale(.2) rotate(12deg); } }
+  .message { min-height: 26px; margin-top: 12px; color: #e0b46a; letter-spacing: 1px; }
+  .hidden { display: none !important; }
+  @media (max-width: 520px) { body { padding: 15px 8px; } #board { gap: 3px; padding: 7px; } .hud { padding: 8px; font-size: 12px; } .hud b { font-size: 18px; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>朝代連號消消樂</h1>
+  <div id="studentName" class="subtitle"></div>
+
+  <section id="intro" class="intro">
+    <h2>隱藏關挑戰</h2>
+    <p>交換相鄰方塊，讓三個連續朝代排成橫線或直線即可消除。</p>
+    <p class="reward">30 秒內達到 200 分，可獲得奶茶一杯！</p>
+    <button id="startButton">開始 30 秒挑戰</button>
+    <button class="secondary" onclick="location.href='index.html'">返回首頁</button>
+  </section>
+
+  <section id="game" class="hidden">
+    <div class="hud">
+      <span>剩餘 <b id="time" class="timer">30</b> 秒</span>
+      <span>得分 <b id="score">0</b> / 200</span>
+      <span>連鎖 <b id="combo">0</b></span>
+    </div>
+    <div id="board" aria-label="朝代消消樂棋盤"></div>
+    <div id="message" class="message" aria-live="polite"></div>
+  </section>
+
+  <section id="locked" class="locked hidden">
+    <h2>目前無法進入隱藏關</h2>
+    <p>本關只開放給已登入學生與教師測試帳號。</p>
+    <button onclick="location.href='index.html'">返回首頁</button>
+  </section>
+</main>
+
+<script>
+const UNLOCK_KEY = 'CAI_HIDDEN_LEVEL_UNLOCK';
+const SIZE = 8;
+const TIME_LIMIT = 30;
+const REWARD_SCORE = 200;
+const DYNASTIES = ['商', '周', '秦', '漢', '三國', '晉', '南北朝', '隋', '唐', '五代', '宋', '元', '明', '清'];
+const COLORS = ['#a85d42', '#b27a4d', '#4e6c82', '#9b493d', '#617b78', '#536c6a', '#80644c', '#a8784b', '#a34e3f', '#62645d', '#5b718b', '#80644c', '#9b493d', '#334e50'];
+const student = CAI.getStudent();
+let tiles = [];
+let selected = null;
+let pointerStart = null;
+let suppressClick = false;
+let score = 0;
+let combo = 0;
+let timeLeft = TIME_LIMIT;
+let timer = null;
+let busy = false;
+let finished = false;
+
+function hasAccess() {
+  const ticket = sessionStorage.getItem(UNLOCK_KEY) === '1';
+  sessionStorage.removeItem(UNLOCK_KEY);
+  return Boolean(student && !student.isGuest && ticket);
+}
+
+function randomTile() { return Math.floor(Math.random() * DYNASTIES.length); }
+
+function findMatches() {
+  const matches = new Set();
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const i = r * SIZE + c, value = tiles[i];
+    if (value == null) continue;
+    if (c <= SIZE - 3 && tiles[i + 1] === value + 1 && tiles[i + 2] === value + 2) {
+      matches.add(i); matches.add(i + 1); matches.add(i + 2);
+    }
+    if (r <= SIZE - 3 && tiles[i + SIZE] === value + 1 && tiles[i + SIZE * 2] === value + 2) {
+      matches.add(i); matches.add(i + SIZE); matches.add(i + SIZE * 2);
+    }
+  }
+  return matches;
+}
+
+function createBoard() {
+  do { tiles = Array.from({ length: SIZE * SIZE }, randomTile); }
+  while (findMatches().size > 0);
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  tiles.forEach((value, index) => {
+    const tile = document.createElement('button');
+    tile.type = 'button'; tile.className = 'tile'; tile.dataset.index = index;
+    tile.textContent = DYNASTIES[value]; tile.style.background = COLORS[value];
+    tile.setAttribute('aria-label', `${DYNASTIES[value]}，第 ${index + 1} 格`);
+    if (selected === index) tile.classList.add('selected');
+    tile.addEventListener('pointerdown', event => {
+      pointerStart = { index, x: event.clientX, y: event.clientY };
+      tile.setPointerCapture?.(event.pointerId);
+    });
+    tile.addEventListener('pointerup', finishPointer);
+    tile.addEventListener('click', () => selectTile(index));
+    board.appendChild(tile);
+  });
+}
+
+function adjacent(a, b) {
+  return Math.abs(Math.floor(a / SIZE) - Math.floor(b / SIZE)) + Math.abs((a % SIZE) - (b % SIZE)) === 1;
+}
+
+function finishPointer(event) {
+  if (!pointerStart) return;
+  const start = pointerStart; pointerStart = null;
+  if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < 8) return;
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('.tile');
+  const targetIndex = target ? Number(target.dataset.index) : -1;
+  if (targetIndex >= 0 && adjacent(start.index, targetIndex)) {
+    selected = null; swap(start.index, targetIndex); render();
+  }
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+}
+
+function selectTile(index) {
+  if (suppressClick || finished || busy) return;
+  if (selected === null) selected = index;
+  else if (selected === index) selected = null;
+  else if (adjacent(selected, index)) { const first = selected; selected = null; swap(first, index); }
+  else selected = index;
+  render();
+}
+
+function dropTiles() {
+  for (let c = 0; c < SIZE; c++) {
+    const remaining = [];
+    for (let r = SIZE - 1; r >= 0; r--) if (tiles[r * SIZE + c] != null) remaining.push(tiles[r * SIZE + c]);
+    for (let r = SIZE - 1; r >= 0; r--) tiles[r * SIZE + c] = remaining[SIZE - 1 - r] ?? randomTile();
+  }
+}
+
+function resolve() {
+  const matches = findMatches();
+  if (!matches.size) { combo = 0; return false; }
+  combo++;
+  score += matches.size * 10 + combo * 10;
+  matches.forEach(index => { tiles[index] = null; });
+  dropTiles(); updateHud(); return true;
+}
+
+function swap(a, b) {
+  if (busy || finished) return;
+  busy = true; [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
+  if (!resolve()) {
+    [tiles[a], tiles[b]] = [tiles[b], tiles[a]]; combo = 0; busy = false; render(); return;
+  }
+  render();
+  setTimeout(() => { while (resolve()) render(); busy = false; render(); }, 180);
+}
+
+function updateHud() {
+  document.getElementById('time').textContent = timeLeft;
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+  document.getElementById('time').classList.toggle('urgent', timeLeft <= 5);
+}
+
+function finish() {
+  if (finished) return;
+  finished = true; clearInterval(timer); timer = null;
+  const reward = score >= REWARD_SCORE;
+  document.getElementById('message').innerHTML = reward
+    ? '<strong>🧋 恭喜！達成 200 分奶茶獎勵！</strong>'
+    : `挑戰結束，這次得分 ${score} 分，未達 200 分。`;
+  setTimeout(() => {
+    alert(reward ? '恭喜達成奶茶獎勵！' : `挑戰結束：${score} 分`);
+    location.href = 'index.html';
+  }, 350);
+}
+
+function start() {
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  score = 0; combo = 0; timeLeft = TIME_LIMIT; selected = null; finished = false; busy = false;
+  createBoard(); updateHud(); render();
+  timer = setInterval(() => { timeLeft = Math.max(0, timeLeft - 1); updateHud(); if (timeLeft === 0) finish(); }, 1000);
+}
+
+document.getElementById('studentName').textContent = student && !student.isGuest ? `👤 ${student.isTeacher ? '教師測試模式' : student.name}` : '訪客模式';
+if (!hasAccess()) {
+  document.getElementById('intro').classList.add('hidden');
+  document.getElementById('locked').classList.remove('hidden');
+} else {
+  document.getElementById('startButton').addEventListener('click', start);
+}
+</script>
+</body>
+</html>
