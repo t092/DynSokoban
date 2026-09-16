@@ -140,12 +140,20 @@ const CAI = {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      return await res.json();
+      const result = await res.json();
+      if (!res.ok || !result || result.status !== 'success') {
+        console.warn('GAS 回傳成績寫入失敗:', result);
+        return {
+          status: 'error',
+          message: (result && result.message) || `HTTP ${res.status}`
+        };
+      }
+      return result;
     } catch (err) {
-      console.warn('成績上傳失敗或離線:', err);
+      console.warn('成績上傳失敗或離線:', err.message || err);
       return {
         status: 'network_error',
-        message: '連線逾時，但已完成本局挑戰'
+        message: '無法連線至成績伺服器'
       };
     }
   },

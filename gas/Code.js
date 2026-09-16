@@ -12,24 +12,26 @@ const SHEET_NAMES = {
 const TARGET_SPREADSHEET_ID = '1Gsf_NKPJZHbG5WbmW7qKh2jPBYkuTyhoCVlxx2pDfXE';
 
 /**
- * 取得試算表物件 (以 TARGET_SPREADSHEET_ID 開啟，或讀取容器綁定試算表)
+ * 取得試算表物件。容器綁定的試算表必須優先，避免固定 ID 指向另一份表。
  */
 function getSpreadsheet() {
-  let ss = null;
-  if (TARGET_SPREADSHEET_ID) {
+  let ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (ss) return ss;
+
+  const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (propId) {
+    try {
+      ss = SpreadsheetApp.openById(propId);
+    } catch (err) {
+      console.warn('無法透過 SPREADSHEET_ID 開啟:', err);
+    }
+  }
+
+  if (!ss) {
     try {
       ss = SpreadsheetApp.openById(TARGET_SPREADSHEET_ID);
     } catch (err) {
       console.warn('無法透過 TARGET_SPREADSHEET_ID 開啟:', err);
-    }
-  }
-  if (!ss) {
-    ss = SpreadsheetApp.getActiveSpreadsheet();
-  }
-  if (!ss) {
-    const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-    if (propId) {
-      ss = SpreadsheetApp.openById(propId);
     }
   }
   if (!ss) {
@@ -174,7 +176,7 @@ function doPost(e) {
       const moves = Number(payload.moves) || 0;
       const durationSeconds = Number(payload.durationSeconds) || 0;
       const maxLevel = Number(payload.maxLevel) || 1;
-      const isCompleted = Boolean(payload.isCompleted);
+      const isCompleted = payload.isCompleted === true || payload.isCompleted === 'true';
       const levelDetails = JSON.stringify(payload.levelDetails || []);
       const statusText = isCompleted ? '全部通關' : `挑戰至第 ${maxLevel} 關`;
       const timeStr = getTimestamp();

@@ -577,7 +577,10 @@ async function gameOverModal() {
     if (res && res.rank) {
       rankNote = `<p style="color:#e0b46a;">🏆 目前名列 <b>${res.classId} 班 第 ${res.rank} 名</b> (超越 ${res.percentile}% 同學)</p>`;
     }
-    showModal('作業結束', summaryText + rankNote + '<p style="font-size:12px; color:#7ec488;">✓ 成績已存入老師的計分簿</p>');
+    const syncNote = res && res.status === 'success'
+      ? '<p style="font-size:12px; color:#7ec488;">✓ 成績已存入老師的計分簿</p>'
+      : `<p style="font-size:12px; color:#e07e6a;">⚠ 成績同步失敗：${res?.message || '未知錯誤'}</p>`;
+    showModal('作業結束', summaryText + rankNote + syncNote);
   } else {
     showModal('作業結束', summaryText + '<p style="font-size:12px; color:#b9a98c;">※ 提示：使用學習帳號登入可記錄成績與登上排行榜。</p>');
   }
@@ -676,7 +679,7 @@ async function checkWin() {
           <p>總得分：<b>${totalScore}</b> 分（總步數 ${totalMovesAllLevels} 步）</p>
           <p style="font-size:14px; color:#b9a98c;">耗時：${timeStr}</p>
           ${rankHtml}
-          <p style="font-size:12px; color:#7ec488; margin-top:12px;">✓ 成績已存入老師的計分簿</p>
+          <p style="font-size:12px; color:${res && res.status === 'success' ? '#7ec488' : '#e07e6a'}; margin-top:12px;">${res && res.status === 'success' ? '✓ 成績已存入老師的計分簿' : `⚠ 成績同步失敗：${res?.message || '未知錯誤'}`}</p>
         `);
       } else {
         showModal('🎉 全部通關！', `
@@ -689,10 +692,10 @@ async function checkWin() {
     } else {
       pendingAction = 'next';
       let syncText = '';
-      if (CAI.isLoggedIn()) {
-        syncText = '<p id="levelSyncStatus" style="font-size:12px; color:#7ec488; margin-top:8px;">✓ 本關成績已同步至老師的試算表</p>';
+    if (CAI.isLoggedIn()) {
+        syncText = '<p id="levelSyncStatus" style="font-size:12px; color:#e0b46a; margin-top:8px;">成績同步中...</p>';
         const duration = Math.round((Date.now() - gameStartTime) / 1000);
-        CAI.submitScore({
+        const res = await CAI.submitScore({
           totalScore,
           moves: totalMovesAllLevels,
           durationSeconds: duration,
@@ -700,6 +703,9 @@ async function checkWin() {
           isCompleted: false,
           levelDetails: levelDetailsLog
         });
+        syncText = res && res.status === 'success'
+          ? '<p id="levelSyncStatus" style="font-size:12px; color:#7ec488; margin-top:8px;">✓ 本關成績已同步至老師的試算表</p>'
+          : `<p id="levelSyncStatus" style="font-size:12px; color:#e07e6a; margin-top:8px;">⚠ 成績同步失敗：${res?.message || '未知錯誤'}</p>`;
       }
       showModal('🎉 恭喜過關！', `
         <p>第 ${levelNumber} 關完成！</p>
