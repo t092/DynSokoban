@@ -2,7 +2,8 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>朝代關卡遊戲 · 第一關：推積木</title>
+<title>朝代關卡遊戲 · 學習作業</title>
+<script src="cai-service.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -10,17 +11,36 @@
     color: #eee9df;
     font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
     display: flex; flex-direction: column; align-items: center;
-    min-height: 100vh; padding: 28px 16px;
+    min-height: 100vh; padding: 24px 16px;
   }
   h1 { font-size: 26px; letter-spacing: 6px; margin-bottom: 6px; color: #e8ddc9; }
-  .sub { font-size: 14px; color: #b9a98c; letter-spacing: 2px; margin-bottom: 18px; }
-  .hud { display: flex; gap: 24px; margin-bottom: 16px; font-size: 15px; }
+  .sub { font-size: 14px; color: #b9a98c; letter-spacing: 2px; margin-bottom: 14px; text-align: center; }
+  
+  .hud {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    justify-content: center; margin-bottom: 16px; font-size: 14px;
+    background: rgba(30, 26, 22, 0.7); padding: 10px 18px;
+    border-radius: 10px; border: 1px solid #4a3e32;
+  }
   .hud b { color: #e0b46a; }
+  .student-tag {
+    background: #3c342c; padding: 4px 10px; border-radius: 6px;
+    border: 1px solid #5d4d3c; color: #e0cfA8; font-weight: bold;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tag-guest { background: #5b718b; color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+  
   button {
     background: #9d5945; color: #fff; border: none; border-radius: 6px;
-    padding: 8px 18px; font-size: 14px; letter-spacing: 2px; cursor: pointer;
+    padding: 7px 14px; font-size: 13px; letter-spacing: 1px; cursor: pointer;
+    font-family: inherit; transition: background .15s;
   }
   button:hover { background: #b06a52; }
+  .btn-sec { background: #4a3e32; }
+  .btn-sec:hover { background: #5e4f40; }
+  .btn-gold { background: #a8784b; }
+  .btn-gold:hover { background: #bd8a58; }
+
   #board {
     display: grid; gap: 4px; padding: 14px;
     background: #1e1a16; border-radius: 12px;
@@ -39,7 +59,6 @@
     background: #594f40; color: #e0cfA8; box-shadow: inset 0 0 0 2px #8d7a58;
     font-size: 14px; letter-spacing: 1px;
   }
-  /* 階層提示磚：一個大時代可橫跨多個細分期欄位。 */
   .wide-hint { grid-column: span 2; width: auto; min-width: 0; }
   #board.final-board .cell { font-size: 12px; }
   .target {
@@ -68,32 +87,52 @@
   .confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
   .confetti i { position: absolute; top: -20px; width: 9px; height: 16px; animation: fall 1.8s linear forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
-  #modal.hidden { display: none; }
-  #msg { margin-top: 18px; font-size: 18px; letter-spacing: 3px; color: #7ec488; min-height: 26px; }
+  
+  #msg { margin-top: 14px; font-size: 16px; letter-spacing: 2px; color: #7ec488; min-height: 24px; text-align: center; }
   .help { margin-top: 10px; font-size: 13px; color: #8d7f6a; letter-spacing: 1px; }
+
+  /* 彈窗樣式 */
   .modal {
-    position: fixed; inset: 0; z-index: 20;
+    position: fixed; inset: 0; z-index: 50;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(20, 16, 12, 0.72);
-    cursor: pointer;
+    background: rgba(20, 16, 12, 0.78);
   }
-  #hudScore, #hudLevelScore { color: #e0b46a; }
+  .modal.hidden { display: none; }
   .modal-box {
     background: #2e2820; border: 2px solid #c9a15a;
-    border-radius: 16px; padding: 36px 56px; text-align: center;
-    box-shadow: 0 18px 60px rgba(0,0,0,.6);
-    animation: pop .35s ease-out;
+    border-radius: 16px; padding: 32px 48px; text-align: center;
+    box-shadow: 0 18px 60px rgba(0,0,0,.7); max-width: 480px; width: 90%;
+    animation: pop .3s ease-out;
   }
-  @keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal-box h2 { color: #e0b46a; letter-spacing: 4px; margin-bottom: 12px; font-size: 30px; }
-  .modal-box p { color: #eee9df; font-size: 18px; letter-spacing: 2px; margin: 6px 0; }
-  .modal-box .small { color: #b9a98c; font-size: 14px; margin-top: 18px; }
+  @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-box h2 { color: #e0b46a; letter-spacing: 4px; margin-bottom: 12px; font-size: 26px; }
+  .modal-box p { color: #eee9df; font-size: 16px; letter-spacing: 1px; margin: 8px 0; line-height: 1.6; }
+  .modal-box .small { color: #b9a98c; font-size: 13px; margin-top: 16px; }
+
+  /* 排行榜專用彈窗樣式 */
+  .rank-table {
+    width: 100%; border-collapse: collapse; margin-top: 16px;
+    font-size: 14px; text-align: center;
+  }
+  .rank-table th {
+    background: #3d3429; color: #e0b46a; padding: 8px;
+    border-bottom: 2px solid #54483a; letter-spacing: 1px;
+  }
+  .rank-table td {
+    padding: 8px; border-bottom: 1px solid #44382d; color: #eee9df;
+  }
+  .rank-table tr:nth-child(1) td:first-child { color: #f1c40f; font-weight: bold; }
+  .rank-table tr:nth-child(2) td:first-child { color: #bdc3c7; font-weight: bold; }
+  .rank-table tr:nth-child(3) td:first-child { color: #e67e22; font-weight: bold; }
+  .rank-badge { font-size: 15px; }
 </style>
 </head>
 <body>
-  <h1>朝代關卡遊戲</h1>
+  <h1>中國朝代 SOKOBAN</h1>
   <div id="subtitle" class="sub">第一關 · 大分期推積木：夏商 ＋ 周到隋唐 ＋ 宋元 ＋ 明清 ＋ 中華民國</div>
+
   <div class="hud">
+    <span id="hudStudentBadge" class="student-tag">👤 載入中...</span>
     <span>步數：<b id="moves">0</b></span>
     <span>完成：<b id="done">0</b> / <b id="total">3</b></span>
     <span>本關分數：<b id="hudLevelScore">10</b></span>
@@ -101,26 +140,64 @@
     <button onclick="restartLevel()">重新開始</button>
     <button id="soundToggle" onclick="toggleSound()">音效：開</button>
     <button id="musicToggle" onclick="toggleMusic()">音樂：開</button>
+    <button class="btn-gold" onclick="openLeaderboardModal()">🏆 排行榜</button>
+    <button class="btn-sec" onclick="exitToHome()">回首頁</button>
   </div>
+
   <div id="board"></div>
   <div id="msg"></div>
   <div class="help">方向鍵／WASD 移動；積木只能推、不能拉。</div>
   <div id="confetti" class="confetti"></div>
   <audio id="bgm" src="Shift_and_Slide.mp3" loop preload="auto" volume="0.15"></audio>
+
+  <!-- 通關/結束 Modal -->
   <div id="modal" class="modal hidden" onclick="closeModal()">
     <div class="modal-box">
       <h2 id="modalTitle">🎉 恭喜</h2>
-      <p id="modalBody"></p>
+      <div id="modalBody" style="margin: 12px 0;"></div>
       <p class="small">點擊任意處繼續</p>
+    </div>
+  </div>
+
+  <!-- 排行榜 Modal -->
+  <div id="leaderboardModal" class="modal hidden">
+    <div class="modal-box" style="max-width: 520px;">
+      <h2 id="lbTitle">🏆 班級英雄榜</h2>
+      <p id="lbSub" style="font-size:13px; color:#b9a98c;">即時同儕最佳表現</p>
+      <div id="lbContent" style="max-height: 280px; overflow-y: auto; margin: 12px 0;">
+        <p style="color:#b9a98c; padding:20px;">資料載入中...</p>
+      </div>
+      <button class="btn-sec" style="margin-top:10px;" onclick="closeLeaderboardModal()">關閉榜單</button>
     </div>
   </div>
 
 <script>
 const WALL = '#', FLOOR = '.';
-// 頂排：商(2)、周到隋唐目標(3)、五代(4)、宋元目標(5)、明清目標(6)、中華民國(7)
 const ROWS = 9, COLS = 12;
 
-// ---- 音效：以 Web Audio API 即時合成，無需外部音檔 ----
+// ---- 學生學籍身分初始化 ----
+let currentStudent = CAI.getStudent();
+if (!currentStudent) {
+  // 未登入直接進入本頁面時，預設給予訪客體驗身分
+  currentStudent = CAI.setGuestMode();
+}
+
+function updateStudentHud() {
+  const badge = document.getElementById('hudStudentBadge');
+  if (currentStudent.isGuest) {
+    badge.innerHTML = '👤 體驗模式 <span class="tag-guest">不計成績</span>';
+  } else if (currentStudent.isTeacher) {
+    badge.innerHTML = '👤 教師測試模式';
+  } else {
+    badge.innerHTML = `👤 ${currentStudent.classId}班 ${currentStudent.seatNo}號 ${currentStudent.name}`;
+  }
+}
+
+function exitToHome() {
+  window.location.href = 'index.html';
+}
+
+// ---- 音效系統 ----
 let audioCtx = null;
 let soundOn = true;
 
@@ -198,6 +275,7 @@ function ensureMusic() {
   }
 }
 
+// ---- 關卡建置 ----
 function buildLevel() {
   const level = [];
   const columns = boardCols();
@@ -212,7 +290,6 @@ function buildLevel() {
   if (levelNumber === 2) return markSpanCells(buildSecondLevel(level));
   if (levelNumber === 5) return markSpanCells(buildFinalLevel(level));
   if (levelNumber === 4) return markSpanCells(buildFourthLevel(level));
-  // 頂部過關區的歷史提示磚（視為牆）；目標格本身不放任何文字
   level[1][2] = { hint: '商' };
   level[1][4] = { hint: '五　代' };
   level[1][7] = { hint: '中華民國' };
@@ -220,7 +297,6 @@ function buildLevel() {
   return markSpanCells(level);
 }
 
-// 跨格提示磚的延伸欄位也要成為障礙，避免被穿過或被答案磚覆蓋。
 function markSpanCells(level) {
   for (let r = 0; r < level.length; r++) {
     for (let c = 0; c < level[r].length; c++) {
@@ -235,7 +311,6 @@ function markSpanCells(level) {
 }
 
 function buildSecondLevel(level) {
-  // 商｜西周｜東周（春秋、戰國）｜秦｜漢
   level[3][1] = { hint: '商' };
   level[3][3] = { hint: '東周', span: 2 };
   level[3][6] = { hint: '漢' };
@@ -243,36 +318,31 @@ function buildSecondLevel(level) {
 }
 
 function buildThirdLevel(level) {
-  // 頂部主線：秦｜漢（跨三格）｜魏晉南北朝（跨四格）｜隋｜唐
   level[1][1] = { hint: '秦' };
   level[1][2] = { hint: '漢', span: 3 };
   level[1][5] = { hint: '魏晉南北朝', span: 4 };
   level[1][10] = { hint: '唐' };
-  // 漢的三格細分中，新是固定提示磚，不是答案方塊。
   level[2][3] = { hint: '新' };
-  // 五胡十六國是固定的北方政權提示磚；東晉答案格在它正下方。
   level[2][7] = { hint: '五胡十六國' };
   return level;
 }
 
 function buildFourthLevel(level) {
-  // 固定提示磚：五代十國、明清；唐也必須由玩家推入答案格。
   level[1][2] = { hint: '五代十國' };
   level[1][6] = { hint: '明清', span: 2 };
   return level;
 }
 
 function buildFinalLevel(level) {
-  // 最終時間軸：商｜16 個答案位置｜中華民國
   level[1][1] = { hint: '商' };
   level[1][18] = { hint: '中華民國' };
   return level;
 }
 
 const START_BLOCKS = [
-  { name: '周到隋唐', cls: 'block-a', tr: 1, tc: 3 }, // 商旁
-  { name: '宋元',     cls: 'block-b', tr: 1, tc: 5 }, // 五代旁
-  { name: '明清',     cls: 'block-c', tr: 1, tc: 6 }, // 宋元旁、中華民國前
+  { name: '周到隋唐', cls: 'block-a', tr: 1, tc: 3 },
+  { name: '宋元',     cls: 'block-b', tr: 1, tc: 5 },
+  { name: '明清',     cls: 'block-c', tr: 1, tc: 6 },
 ];
 const PLAYER_START = { r: 7, c: 5 };
 const SECOND_BLOCKS = [
@@ -338,7 +408,6 @@ const FINAL_BLOCKS = [
   { name: '清', cls: 'block-h', tr: 1, tc: 17 },
 ];
 const FINAL_SPAWN_CELLS = [
-  // 只在內部第六排隨機排列，確保玩家能從下方逐一推上去。
   { r: 6, c: 2 }, { r: 6, c: 3 }, { r: 6, c: 4 }, { r: 6, c: 5 },
   { r: 6, c: 6 }, { r: 6, c: 7 }, { r: 6, c: 8 }, { r: 6, c: 9 },
   { r: 6, c: 10 }, { r: 6, c: 11 }, { r: 6, c: 12 }, { r: 6, c: 13 },
@@ -351,6 +420,13 @@ const LEVEL_SCORES = { 1: 10, 2: 15, 3: 20, 4: 25, 5: 30 };
 let totalScore = 0;
 let levelScore = LEVEL_SCORES[1];
 let pendingAction = null;
+
+// CAI 學習遙測統計變數
+let gameStartTime = Date.now();
+let totalMovesAllLevels = 0;
+let currentLevelRetries = 0;
+let levelDetailsLog = [];
+
 function boardCols() { return levelNumber === 5 ? 20 : COLS; }
 
 function isWallCell(r, c) {
@@ -366,11 +442,11 @@ function updateHud() {
   document.getElementById('total').textContent = blocks.length;
   document.getElementById('hudLevelScore').textContent = levelScore;
   document.getElementById('hudScore').textContent = totalScore;
+  updateStudentHud();
 }
 
 function loadLevel() {
   level = buildLevel();
-  // 每局將答案積木放到不同位置，避免固定直線解法。
   const blockSet = levelNumber === 5
     ? FINAL_BLOCKS
     : levelNumber === 4
@@ -385,7 +461,6 @@ function loadLevel() {
       : levelNumber === 3
       ? THIRD_SPAWN_CELLS
       : levelNumber === 2 ? SECOND_SPAWN_CELLS : SPAWN_CELLS;
-  // 最下面的可行走列沒有空間讓玩家站到方塊下方，因此禁止出生在那一排。
   const shuffledSpawns = [...spawnSet]
     .filter(cell => (
       cell.r > 0 && cell.r < ROWS - 2 &&
@@ -420,6 +495,7 @@ function loadLevel() {
 function startLevel(num) {
   levelNumber = num;
   levelScore = LEVEL_SCORES[num];
+  currentLevelRetries = 0;
   pendingAction = null;
   loadLevel();
   sfxReset();
@@ -427,6 +503,7 @@ function startLevel(num) {
 
 function restartLevel() {
   if (won) return;
+  currentLevelRetries++;
   levelScore = Math.max(0, levelScore - 2);
   if (levelScore === 0) {
     gameOverModal();
@@ -436,9 +513,9 @@ function restartLevel() {
   sfxReset();
 }
 
-function showModal(title, body) {
+function showModal(title, bodyHtml) {
   document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').textContent = body;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
   document.getElementById('modal').classList.remove('hidden');
 }
 
@@ -451,15 +528,39 @@ function closeModal() {
     startLevel(levelNumber + 1);
   } else if (action === 'complete' || action === 'gameover') {
     totalScore = 0;
+    totalMovesAllLevels = 0;
+    levelDetailsLog = [];
+    gameStartTime = Date.now();
     startLevel(1);
   }
 }
 
-function gameOverModal() {
-  document.getElementById('msg').textContent = '本關分數已扣至 0 分，遊戲結束';
+async function gameOverModal() {
+  document.getElementById('msg').textContent = '本關分數已扣至 0 分，作業結束';
   sfxBlocked();
-  showModal('遊戲結束', `本關分數已扣至 0 分　總分 ${totalScore} 分`);
   pendingAction = 'gameover';
+
+  const duration = Math.round((Date.now() - gameStartTime) / 1000);
+  let summaryText = `<p>本關分數已扣至 0 分　累計總分 <b>${totalScore}</b> 分</p>`;
+
+  if (CAI.isLoggedIn()) {
+    showModal('作業結束', summaryText + '<p style="font-size:13px; color:#b9a98c;">成績上傳試算表中...</p>');
+    const res = await CAI.submitScore({
+      totalScore,
+      moves: totalMovesAllLevels + moves,
+      durationSeconds: duration,
+      maxLevel: levelNumber,
+      isCompleted: false,
+      levelDetails: levelDetailsLog
+    });
+    let rankNote = '';
+    if (res && res.rank) {
+      rankNote = `<p style="color:#e0b46a;">🏆 目前名列 <b>${res.classId} 班 第 ${res.rank} 名</b> (超越 ${res.percentile}% 同學)</p>`;
+    }
+    showModal('作業結束', summaryText + rankNote + '<p style="font-size:12px; color:#7ec488;">✓ 成績已存入老師的計分簿</p>');
+  } else {
+    showModal('作業結束', summaryText + '<p style="font-size:12px; color:#b9a98c;">※ 提示：使用學習帳號登入可記錄成績與登上排行榜。</p>');
+  }
 }
 
 function tryMove(dr, dc) {
@@ -469,7 +570,7 @@ function tryMove(dr, dc) {
   const b = blockAt(nr, nc);
   if (b) {
     const br = b.r + dr, bc = b.c + dc;
-    if (isWallCell(br, bc) || blockAt(br, bc)) { sfxBlocked(); return; } // 積木後面被擋住
+    if (isWallCell(br, bc) || blockAt(br, bc)) { sfxBlocked(); return; }
     const wasOnTarget = isTarget(b, b.r, b.c);
     b.r = br; b.c = bc;
     sfxPush();
@@ -484,12 +585,21 @@ function tryMove(dr, dc) {
   if (won) showWinEffects();
 }
 
-function checkWin() {
+async function checkWin() {
   const done = blocks.filter(b => isTarget(b, b.r, b.c)).length;
   document.getElementById('done').textContent = done;
   if (done === blocks.length) {
     won = true;
     totalScore += levelScore;
+    totalMovesAllLevels += moves;
+
+    levelDetailsLog.push({
+      level: levelNumber,
+      score: levelScore,
+      moves: moves,
+      retries: currentLevelRetries
+    });
+
     document.getElementById('msg').textContent =
       levelNumber === 5
         ? `最後一關通關！完整朝代順序完成（${moves} 步）`
@@ -503,12 +613,65 @@ function checkWin() {
     updateHud();
     sfxDoor();
     if (levelNumber === 5) { sfxFinal(); } else { sfxWin(); }
+
     if (levelNumber === 5) {
       pendingAction = 'complete';
-      showModal('🎉 全部通關！', `本關獲得 ${levelScore} 分　總分 ${totalScore} 分`);
+      const duration = Math.round((Date.now() - gameStartTime) / 1000);
+      const minutes = Math.floor(duration / 60);
+      const seconds = duration % 60;
+      const timeStr = `${minutes}分${seconds}秒`;
+
+      if (CAI.isLoggedIn()) {
+        showModal('🎉 全部通關！', `
+          <p>恭喜完成五千年歷史時序！</p>
+          <p>本關獲得 <b>${levelScore}</b> 分 · 總得分 <b>${totalScore}</b> 分</p>
+          <p style="font-size:14px; color:#b9a98c;">總步數：${totalMovesAllLevels} 步 · 總耗時：${timeStr}</p>
+          <p style="font-size:13px; color:#e0b46a;">成績同步中...</p>
+        `);
+
+        const res = await CAI.submitScore({
+          totalScore,
+          moves: totalMovesAllLevels,
+          durationSeconds: duration,
+          maxLevel: 5,
+          isCompleted: true,
+          levelDetails: levelDetailsLog
+        });
+
+        let rankHtml = '';
+        if (res && res.rank) {
+          rankHtml = `
+            <p style="color:#e0b46a; font-size:17px; margin-top:10px;">
+              🏆 目前名列 <b>${res.classId} 班 第 ${res.rank} 名</b>
+            </p>
+            <p style="color:#b9a98c; font-size:13px;">超越了全班 ${res.percentile}% 的同學！</p>
+          `;
+        }
+        if (res && res.isNewRecord) {
+          rankHtml += `<p style="color:#f1c40f; font-weight:bold;">🌟 恭喜刷新個人最佳紀錄！</p>`;
+        }
+
+        showModal('🎉 全部通關！', `
+          <p>恭喜完成五千年歷史時序！</p>
+          <p>總得分：<b>${totalScore}</b> 分（總步數 ${totalMovesAllLevels} 步）</p>
+          <p style="font-size:14px; color:#b9a98c;">耗時：${timeStr}</p>
+          ${rankHtml}
+          <p style="font-size:12px; color:#7ec488; margin-top:12px;">✓ 成績已存入老師的計分簿</p>
+        `);
+      } else {
+        showModal('🎉 全部通關！', `
+          <p>恭喜完成五千年歷史時序！</p>
+          <p>本關獲得 <b>${levelScore}</b> 分 · 總得分 <b>${totalScore}</b> 分</p>
+          <p style="font-size:14px; color:#b9a98c;">總步數：${totalMovesAllLevels} 步 · 總耗時：${timeStr}</p>
+          <p style="font-size:13px; color:#b9a98c; margin-top:12px;">※ 訪客體驗模式：成績不列入正式紀錄。<br>使用學習帳號登入可登上班級排行榜！</p>
+        `);
+      }
     } else {
       pendingAction = 'next';
-      showModal('🎉 恭喜過關！', `第 ${levelNumber} 關完成　獲得 ${levelScore} 分　總分 ${totalScore} 分`);
+      showModal('🎉 恭喜過關！', `
+        <p>第 ${levelNumber} 關完成！</p>
+        <p>本關獲得 <b>${levelScore}</b> 分 · 累計總分 <b>${totalScore}</b> 分</p>
+      `);
     }
   }
 }
@@ -573,10 +736,60 @@ function celebrate() {
   }
 }
 
-function enterNextLevel() {
-  startLevel(Math.min(levelNumber + 1, 5));
+// ---- 排行榜彈窗 ----
+async function openLeaderboardModal() {
+  const modal = document.getElementById('leaderboardModal');
+  const content = document.getElementById('lbContent');
+  const title = document.getElementById('lbTitle');
+  const classId = currentStudent && !currentStudent.isGuest ? currentStudent.classId : '';
+  title.textContent = classId && classId !== '教師' ? `🏆 ${classId} 班 英雄榜` : '🏆 學習作業 榮譽榜';
+  content.innerHTML = '<p style="color:#b9a98c; padding:20px;">載入即時榜單中...</p>';
+  modal.classList.remove('hidden');
+
+  const data = await CAI.getLeaderboard(classId === '教師' ? '' : classId);
+  if (!data || !data.topList || data.topList.length === 0) {
+    content.innerHTML = '<p style="color:#b9a98c; padding:20px;">目前尚無挑戰紀錄，快成為第一位通關者！</p>';
+    return;
+  }
+
+  let html = `
+    <table class="rank-table">
+      <thead>
+        <tr>
+          <th>名次</th>
+          <th>姓名</th>
+          <th>座號</th>
+          <th>得分</th>
+          <th>步數</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  data.topList.forEach(item => {
+    let rankIcon = item.rank;
+    if (item.rank === 1) rankIcon = '🥇 1';
+    else if (item.rank === 2) rankIcon = '🥈 2';
+    else if (item.rank === 3) rankIcon = '🥉 3';
+
+    html += `
+      <tr>
+        <td>${rankIcon}</td>
+        <td>${item.name}</td>
+        <td>${item.seatNo || '-'}</td>
+        <td style="color:#e0b46a; font-weight:bold;">${item.score}</td>
+        <td>${item.moves} 步</td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table>`;
+  content.innerHTML = html;
 }
 
+function closeLeaderboardModal() {
+  document.getElementById('leaderboardModal').classList.add('hidden');
+}
+
+// ---- 鍵盤事件監聽 ----
 document.addEventListener('keydown', e => {
   const keymap = {
     ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
@@ -589,6 +802,7 @@ document.addEventListener('keydown', e => {
 
 document.body.addEventListener('click', ensureMusic, { once: true });
 
+// 啟動第一關
 startLevel(1);
 </script>
 </body>
