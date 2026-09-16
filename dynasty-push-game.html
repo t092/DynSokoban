@@ -127,6 +127,12 @@
   @keyframes tileClear { to { opacity: 0; transform: scale(.2) rotate(12deg); } }
   .sequence-result { min-height: 25px; margin-top: 12px; text-align: center; color: #e0b46a; letter-spacing: 1px; }
   .sequence-mode .classic-only, .sequence-mode #board, .sequence-mode #msg, .sequence-mode .help { display: none; }
+  .teacher-only { display: none; }
+  .teacher-only select {
+    background: #211a15; color: #f0d69a; border: 1px solid #8d7a58;
+    border-radius: 5px; padding: 5px 7px; font: inherit; cursor: pointer;
+  }
+  .sequence-mode .teacher-only { display: none !important; }
   @media (max-width: 520px) {
     .sequence-game { width: 96vw; }
     .sequence-hud { padding: 8px 9px; font-size: 12px; }
@@ -181,6 +187,16 @@
     <span class="classic-only">本關分數：<b id="hudLevelScore">10</b></span>
     <span class="classic-only">總分：<b id="hudScore">0</b></span>
     <button class="classic-only" onclick="restartLevel()">重新開始</button>
+    <label id="teacherLevelControl" class="teacher-only">測試關卡
+      <select id="testLevelSelect" onchange="selectTestLevel(this.value)" aria-label="選擇測試關卡">
+        <option value="1">第 1 關</option>
+        <option value="2">第 2 關</option>
+        <option value="3">第 3 關</option>
+        <option value="4">第 4 關</option>
+        <option value="5">第 5 關</option>
+        <option value="6">隱藏關</option>
+      </select>
+    </label>
     <button id="soundToggle" onclick="toggleSound()">音效：開</button>
     <button id="musicToggle" onclick="toggleMusic()">音樂：開</button>
     <button class="btn-gold" onclick="openLeaderboardModal()">🏆 排行榜</button>
@@ -240,12 +256,16 @@ if (!currentStudent) {
 
 function updateStudentHud() {
   const badge = document.getElementById('hudStudentBadge');
+  const teacherControl = document.getElementById('teacherLevelControl');
   if (currentStudent.isGuest) {
     badge.innerHTML = '👤 體驗模式 <span class="tag-guest">不計成績</span>';
+    teacherControl.style.display = 'none';
   } else if (currentStudent.isTeacher) {
     badge.innerHTML = '👤 教師測試模式';
+    teacherControl.style.display = 'inline-flex';
   } else {
     badge.innerHTML = `👤 ${currentStudent.classId}班 ${currentStudent.seatNo}號 ${currentStudent.name}`;
+    teacherControl.style.display = 'none';
   }
 }
 
@@ -585,10 +605,37 @@ function loadLevel() {
 function startLevel(num) {
   levelNumber = num;
   levelScore = LEVEL_SCORES[num];
+  const testLevelSelect = document.getElementById('testLevelSelect');
+  if (testLevelSelect) testLevelSelect.value = String(num);
   currentLevelRetries = 0;
   pendingAction = null;
   loadLevel();
   sfxReset();
+}
+
+function selectTestLevel(value) {
+  if (!currentStudent.isTeacher) return;
+  const selectedLevel = Number(value);
+  if (![1, 2, 3, 4, 5, 6].includes(selectedLevel)) return;
+
+  // 每次切換測試關卡都從乾淨的測試狀態開始，不混入前一關成績。
+  totalScore = 0;
+  totalMovesAllLevels = 0;
+  levelDetailsLog = [];
+  gameStartTime = Date.now();
+  pendingAction = null;
+  hiddenLevelUnlocked = false;
+  window.clearInterval(sequenceTimer);
+  sequenceTimer = null;
+  sequenceFinished = true;
+  document.body.classList.remove('sequence-mode');
+  document.getElementById('sequenceGame').classList.remove('active');
+
+  if (selectedLevel === 6) {
+    startSequenceGame();
+  } else {
+    startLevel(selectedLevel);
+  }
 }
 
 function restartLevel() {
@@ -768,6 +815,8 @@ function sequenceSwap(a, b) {
 
 function startSequenceGame() {
   hiddenLevelUnlocked = true;
+  const testLevelSelect = document.getElementById('testLevelSelect');
+  if (testLevelSelect) testLevelSelect.value = '6';
   sequenceScore = 0;
   sequenceCombo = 0;
   sequenceTimeLeft = SEQUENCE_TIME_LIMIT;
